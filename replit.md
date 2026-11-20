@@ -28,7 +28,10 @@ Marketplace de beleza e clube de assinatura demonstrativo em São Paulo. “Sua 
 
 - Cashback is released on completed check-in for the first three completed appointments, rather than before service delivery. Why: cancellations must not generate free cashback.
 - Partner/client synchronization is local to this browser and same-origin browser tabs. Why: this hackathon explicitly excludes a backend.
-- Editorial mint/emerald SVG artwork replaces salon photography. Why: the requested MVP must remain self-contained without image generation or external image APIs.
+- Use the official BeautyPass Android photos and botanical emblems as normal public image sources, with mint-tinted icon fallbacks. Why: the user requested Android brand fidelity rather than abstract illustrations.
+- Preserve existing local demo records when adding fields. Why: visual upgrades must not clear bookings, credits, rules or vouchers.
+- Verified reviews become available only for completed bookings and count once per voucher. Seed salon ratings retain their original weighting when new reviews are added. Why: the seed ratings must stay intact until a real demo review is submitted.
+- Partner charts distinguish illustrative dynamic-pricing projections from completed-voucher payouts. Why: a local hackathon demo cannot claim to measure real conversion uplift.
 
 ## Product
 
@@ -39,8 +42,9 @@ PT-BR discovery and map, instant matching, salon agendas with economic slots, si
 - Keep this hackathon MVP entirely client-side with persisted demo state and a one-click demo reset.
 - Do not add backend services, databases, payment gateways, OAuth, external map tiles, or paid API keys.
 - All payments, top-ups, memberships, and QR check-ins are simulations.
-- Use PT-BR copy, mint/forest branding, Playfair Display headings, Inter UI, Lucide/vector visuals, and no emojis.
-- Reuse at most five category visuals; do not generate separate salon images.
+- Use PT-BR copy, mint/forest branding, crisp stroke icons, official real photography, no pure black and no emojis.
+- Playfair Display is reserved for the wordmark, salon hero titles, and appointments/profile headers; other UI uses Inter.
+- On desktop, default to the 412px phone showcase; the salon portal remains a wide dashboard.
 
 ## Gotchas
 

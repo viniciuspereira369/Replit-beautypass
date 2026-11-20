@@ -1,6 +1,8 @@
 import { useSyncExternalStore } from 'react';
 import { PLANS, type PlanName, getSalon } from './data';
 import { addDays, dateKey, hash, type DiscKind, type Rule, slotStart } from './pricing';
+import type { ExperienceReview } from './experience';
+export type { ExperienceReview } from './experience';
 
 export type Status = 'CONFIRMED' | 'COMPLETED' | 'CANCELLED_BY_USER' | 'CANCELLED_BY_MERCHANT';
 export type Payment = 'card' | 'pix' | 'credits';
@@ -9,12 +11,15 @@ export type Booking = {
   mode: 'salao' | 'domicilio'; address?: string; notes?: string; base: number; final: number; fee: number;
   disc: number; kind: DiscKind; payment: Payment; status: Status; createdAt: number;
   cancelReason?: string; cancelFee?: number; refund?: number;
+  reviewed?: boolean;
 };
 export type Hold = Omit<Booking, 'code' | 'status' | 'createdAt' | 'payment'> & { expiresAt: number };
 export type Ledger = { code: string; salonId: string; gross: number; platform: number; net: number; at: number };
 export type State = {
   user: { name: string; plan: PlanName; credits: number; saved: number; clubDismissed: boolean };
   favorites: string[]; bookings: Booking[]; rules: Rule[]; hold: Hold | null; ledger: Ledger[];
+  reviews: ExperienceReview[];
+  fulfillment: 'salao' | 'domicilio';
 };
 
 const KEY = 'bp:state:v1';
@@ -37,11 +42,28 @@ function seed(): State {
     rules: [{ id: 'r-seed', salonId: 'atelie-belle-epoque', kind: 'ultima', pct: 25 }],
     hold: null,
     ledger: [{ code: 'BP-952130', salonId: 'barbearia-maestro', gross: 52.5, platform: 6.3, net: 46.2, at: Date.now() - 5 * 864e5 }],
+    reviews: [],
+    fulfillment: 'salao',
+  };
+}
+
+function normalize(saved: State): State {
+  return {
+    ...saved,
+    reviews: Array.isArray(saved.reviews) ? saved.reviews : [],
+    fulfillment: saved.fulfillment === 'domicilio' ? 'domicilio' : 'salao',
   };
 }
 
 function load(): State {
-  try { const r = localStorage.getItem(KEY); if (r) return JSON.parse(r); } catch { /* ignore */ }
+  try {
+    const r = localStorage.getItem(KEY);
+    if (r) {
+      const saved = JSON.parse(r);
+      if (!saved.user || !Array.isArray(saved.bookings) || !Array.isArray(saved.rules)) throw new Error('Dados locais inválidos.');
+      return normalize(saved);
+    }
+  } catch { console.warn('BeautyPass: os dados locais estavam inválidos; a demonstração foi restaurada.'); }
   const s = seed(); localStorage.setItem(KEY, JSON.stringify(s)); return s;
 }
 
@@ -51,7 +73,7 @@ const emit = () => listeners.forEach((l) => l());
 const subscribe = (l: () => void) => { listeners.add(l); return () => listeners.delete(l); };
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', (e) => {
-    if (e.key === KEY || e.key === null) { state = e.newValue ? JSON.parse(e.newValue) : load(); emit(); }
+    if (e.key === KEY || e.key === null) { state = load(); emit(); }
   });
 }
 
@@ -62,7 +84,11 @@ export const useStore = () => useSyncExternalStore(subscribe, () => state);
 export function resetDemo() {
   Object.keys(localStorage).filter((k) => k.startsWith('bp:')).forEach((k) => localStorage.removeItem(k));
   state = load(); emit();
+  window.dispatchEvent(new Event('bp:reset'));
 }
+
+export const setFulfillment = (mode: State['fulfillment']) =>
+  setState((s) => ({ ...s, fulfillment: mode }));
 
 export const toggleFavorite = (id: string) =>
   setState((s) => ({ ...s, favorites: s.favorites.includes(id) ? s.favorites.filter((f) => f !== id) : [...s.favorites, id] }));
@@ -146,4 +172,31 @@ export function checkIn(code: string, salonId: string): { ok: boolean; msg: stri
     ledger: [{ code: c, salonId, gross, platform, net: +(gross - platform).toFixed(2), at: Date.now() }, ...s.ledger],
   }));
   return { ok: true, msg: `Check-in confirmado. ${c} concluída e enviada para Receita D+1.` };
+}
+
+export function submitReview(code: string, rating: number, comment: string): { ok: boolean; error?: string } {
+  const booking = state.bookings.find((item) => item.code === code);
+  if (!booking || booking.status !== 'COMPLETED') {
+    return { ok: false, error: 'A avaliação fica disponível após o check-in e a conclusão do atendimento.' };
+  }
+  if (booking.reviewed || state.reviews.some((review) => review.code === code)) {
+    return { ok: false, error: 'Você já avaliou esta experiência.' };
+  }
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return { ok: false, error: 'Escolha uma nota de 1 a 5 estrelas.' };
+  }
+  const text = comment.trim();
+  if (!text || text.length > 1000) {
+    return { ok: false, error: 'Conte como foi sua experiência em até 1.000 caracteres.' };
+  }
+  const review: ExperienceReview = {
+    code, salonId: booking.salonId, author: state.user.name, rating, text,
+    when: 'agora · reserva verificada', createdAt: Date.now(),
+  };
+  setState((s) => ({
+    ...s,
+    reviews: [review, ...s.reviews],
+    bookings: s.bookings.map((item) => item.code === code ? { ...item, reviewed: true } : item),
+  }));
+  return { ok: true };
 }

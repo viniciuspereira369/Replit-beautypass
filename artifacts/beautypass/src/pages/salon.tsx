@@ -1,149 +1,161 @@
 import { useMemo, useState } from 'react';
-import { Link, useLocation, useParams } from 'wouter';
-import { ArrowLeft, Star, MapPin, HelpCircle, Check, Home as HomeIcon, Store, Award, Clock } from 'lucide-react';
+import { useLocation, useParams } from 'wouter';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, Star, MapPin, HelpCircle, Clock, Footprints, Sparkles, ChevronRight } from 'lucide-react';
 import { getSalon } from '@/lib/data';
-import { addDays, brl, dateKey, domicileFee, EXPLAIN, kindLabel, pad, PERIODS, type Period, priceFor, slotDiscount, slotState } from '@/lib/pricing';
+import { addDays, brl, dateKey, domicileFee, kindLabel, pad, PERIODS, type Period, priceFor, slotDiscount, slotState } from '@/lib/pricing';
 import { isTaken, startHold, useStore } from '@/lib/store';
-import { CategoryArt, Initials } from '@/components/art';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { FavButton, LiveProof } from '@/components/salon-card';
-import { Empty } from '@/components/shell';
+import { salonRating, salonReviews } from '@/lib/experience';
+import { galleryFor, specialistPhoto } from '@/lib/media';
+import { Photo, Portrait } from '@/components/art';
+import { FavButton, FriendStack, LiveProof, fmtRating, liveDiscount, walkMin } from '@/components/salon-card';
+import { FulfillmentToggle } from '@/components/fulfillment-toggle';
+import { RadialClock } from '@/components/radial-clock';
+import { PriceHelp } from '@/components/price-help';
+import { Gallery, GuaranteeTiles, Reviews, ServiceCards, StaffStrip, galleryCrop } from '@/components/salon-parts';
+import { useGuide } from '@/hooks/use-guide';
 import NotFound from './not-found';
 import { cn } from '@/lib/utils';
 
 const STATE_STYLE: Record<string, string> = {
-  Disponível: 'border-line bg-white text-ink', 'Alta Procura': 'border-gold/40 bg-[#FFFBEB] text-ink',
-  Desconto: 'border-teal bg-tint text-forest', Ocupado: 'border-line bg-tint-2 text-muted-ink/60 line-through cursor-not-allowed',
+  Disponível: 'border-line bg-white text-ink', 'Alta Procura': 'border-gold/40 bg-amber-bg text-ink',
+  Desconto: 'border-economy/50 bg-economy-bg text-forest', Ocupado: 'border-line bg-porcelain text-strike line-through cursor-not-allowed',
 };
 
 export default function SalonPage() {
-  const { id } = useParams<{ id: string }>(); const salon = getSalon(id ?? '');
+  const { id } = useParams<{ id: string }>();
+  const salon = getSalon(id ?? '');
   const st = useStore(); const [, navigate] = useLocation();
   const [svc, setSvc] = useState<string[]>(salon ? [salon.services[0].id] : []);
   const [staff, setStaff] = useState<string | null>(null);
-  const [mode, setMode] = useState<'salao' | 'domicilio'>('salao');
   const [day, setDay] = useState(0); const [period, setPeriod] = useState<Period>('Tarde');
-  const [hour, setHour] = useState<number | null>(null); const [help, setHelp] = useState(false);
+  const [hour, setHour] = useState<number | null>(null); const [help, setHelp] = useState(false); const [hero, setHero] = useState(0);
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(new Date(), i)), []);
+  const clockRef = useGuide<HTMLElement>('salon-clock');
   if (!salon) return <NotFound />;
+  const mode = st.fulfillment ?? 'salao';
+  const reviews = salonReviews(salon, st.reviews ?? []); const rating = salonRating(salon, st.reviews ?? []);
+  const photos = galleryFor(salon);
   const key = dateKey(days[day]);
   const chosen = salon.services.filter((s) => svc.includes(s.id));
   const base = chosen.reduce((a, s) => a + s.base, 0);
   const duration = chosen.reduce((a, s) => a + s.duration, 0) + Math.max(0, chosen.length - 1) * 10;
   const fee = mode === 'domicilio' ? domicileFee(salon.distanceKm) : 0;
   const slots = (hs: readonly number[]) => hs.map((h) => { const r = slotDiscount(salon, key, h, st.rules); const state = r.past ? 'Ocupado' : slotState(salon, key, h, r.disc, isTaken(st, salon.id, key, h, duration || 60)); return { h, ...r, state }; });
-  const cur = slots(PERIODS[period]);
-  const sel = hour != null ? slots([hour])[0] : null;
-  const final = sel ? priceFor(base, sel.disc) : base;
-  const lbl = sel ? kindLabel(sel.kind) : null;
+  const all = slots([9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
+  const cur = all.filter((s) => (PERIODS[period] as readonly number[]).includes(s.h));
+  const sel = hour != null ? all.find((s) => s.h === hour) ?? null : null;
+  const blocked = !sel || sel.state === 'Ocupado';
+  const final = sel && !blocked ? priceFor(base, sel.disc) : base;
+  const lbl = sel && !blocked ? kindLabel(sel.kind) : null;
+  const maxToday = liveDiscount(salon, st.rules);
+  const todayKey = dateKey(new Date());
+  const freeToday = [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].filter((h) => { const r = slotDiscount(salon, todayKey, h, st.rules); return !r.past && slotState(salon, todayKey, h, r.disc, isTaken(st, salon.id, todayKey, h, duration || 60)) !== 'Ocupado'; }).length;
+  const lead = salon.staff[0];
+
+  const pickHour = (h: number) => { setHour(h); const p = (Object.keys(PERIODS) as Period[]).find((k) => (PERIODS[k] as readonly number[]).includes(h)); if (p) setPeriod(p); };
+  const pickPeriod = (p: Period) => { setPeriod(p); const avail = all.filter((s) => (PERIODS[p] as readonly number[]).includes(s.h)).find((s) => s.state !== 'Ocupado'); setHour(avail ? avail.h : PERIODS[p][0]); };
 
   const reserve = () => {
-    if (!sel || sel.state === 'Ocupado' || !chosen.length) return;
+    if (!sel || blocked || !chosen.length) return;
     startHold({ salonId: salon.id, serviceIds: svc, staffId: staff, date: key, hour: sel.h, mode, base, final, fee, disc: sel.disc, kind: sel.kind });
     navigate('/checkout');
   };
+  const darkBtn = 'flex h-9 w-9 items-center justify-center rounded-full bg-[#0C2D26]/45 text-white backdrop-blur-md transition active:scale-90';
 
   return (
-    <div className="mx-auto max-w-5xl pb-24">
-      <div className="relative">
-        <CategoryArt category={salon.category} seed={salon.id + 'hero'} className="h-56 @3xl:h-72 @3xl:rounded-b-[40px]" />
-        <Link href="/" aria-label="Voltar" data-testid="link-back" className="absolute left-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/90"><ArrowLeft className="h-4 w-4 text-ink" /></Link>
-        <FavButton id={salon.id} className="absolute right-4 top-4" />
-        <div className="absolute bottom-5 left-5 right-5 text-tint">
-          <p className="text-[11px] uppercase tracking-[.2em] text-mint">{salon.hood} · {salon.category}</p>
-          <h1 className="font-display text-3xl font-semibold leading-tight" data-testid="text-salon-name">{salon.name}</h1>
-          <p className="font-display text-sm italic text-mint-3">{salon.tagline}</p>
+    <div className="mx-auto max-w-3xl pb-6">
+      <div className="relative h-[216px] overflow-hidden @3xl:h-[300px]">
+        <AnimatePresence initial={false}>
+          <motion.div key={hero} className="absolute inset-0" initial={{ opacity: 0, scale: 1.04 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.35 }}>
+            <Photo src={photos[hero]} alt={`${salon.name} interior`} position={galleryCrop(hero)} className="h-full w-full" eager />
+          </motion.div>
+        </AnimatePresence>
+        <div className="scrim-t absolute inset-0" />
+        <div className="absolute inset-x-4 top-4 flex items-center justify-between">
+          <button aria-label="Voltar" data-testid="link-back" onClick={() => (window.history.length > 1 ? window.history.back() : navigate('/'))} className={darkBtn}><ArrowLeft className="h-4 w-4" /></button>
+          <div className="flex gap-2">
+            <FavButton id={salon.id} onDark />
+            <button aria-label="Por que este preço é menor?" aria-haspopup="dialog" data-testid="button-explain" onClick={() => setHelp(true)} className={darkBtn}><HelpCircle className="h-4 w-4" /></button>
+          </div>
         </div>
       </div>
-      <div className="space-y-6 px-5 pt-4">
-        <div className="flex flex-wrap items-center gap-3 text-xs text-ink tnum">
-          <span className="flex items-center gap-1"><Star className="h-3.5 w-3.5 fill-gold text-gold" />{salon.rating} · {salon.reviews.length} avaliações</span>
+
+      <div className="relative -mt-6 rounded-t-[24px] bg-white px-5 pb-2 pt-10">
+        <span className="absolute -top-[30px] left-1/2 -translate-x-1/2" data-testid="img-lead-portrait"><Portrait src={specialistPhoto(lead.name)} name={lead.name} className="h-[60px] w-[60px] shadow-lg ring-[3px]" /></span>
+        <div className="mb-2 flex justify-center"><LiveProof salon={salon} /></div>
+        <p className="text-[11px] font-bold uppercase tracking-[.18em] text-teal">{salon.hood} · {salon.category}</p>
+        <h1 className="font-display text-[28px] font-semibold leading-tight text-forest" data-testid="text-salon-name">{salon.name}</h1>
+        <p className="font-display text-sm italic text-teal-deep">{salon.tagline}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink tnum">
+          <span className="flex items-center gap-1 font-bold"><Star className="h-3.5 w-3.5 fill-gold text-gold" />{fmtRating(rating)} <span className="font-normal text-muted-ink">· {reviews.length} avaliações</span></span>
           <span className="flex items-center gap-1 text-muted-ink"><MapPin className="h-3.5 w-3.5" />{salon.address}</span>
         </div>
-        <LiveProof salon={salon} />
-        <p className="flex items-center gap-2 text-xs text-muted-ink"><span className="flex -space-x-1.5">{salon.mutuals.map((m) => <Initials key={m} name={m} className="h-6 w-6" />)}</span>{salon.mutuals.join(', ')} já foram aqui</p>
+        <p className="mt-2 flex items-center gap-2 text-xs text-muted-ink"><FriendStack salon={salon} />{salon.mutuals.join(', ')} já foram aqui</p>
 
-        <div className="relative rounded-2xl bg-tint p-3 text-sm text-forest">
-          <button data-testid="button-explain" aria-haspopup="dialog" onClick={() => setHelp(true)} className="flex w-full items-center justify-between font-medium">Por que este preço é menor? <HelpCircle className="h-4 w-4 text-teal" aria-hidden /></button>
-          <Dialog open={help} onOpenChange={setHelp}>
-            <DialogContent className="max-w-sm rounded-3xl border-line bg-porcelain" data-testid="dialog-explain">
-              <DialogHeader><DialogTitle className="font-display text-xl text-forest">Como funcionam as tarifas inteligentes</DialogTitle>
-                <DialogDescription className="text-sm leading-relaxed text-ink" data-testid="text-explain">{EXPLAIN}</DialogDescription></DialogHeader>
-              <button data-testid="button-explain-close" onClick={() => setHelp(false)} className="rounded-full bg-forest py-2.5 text-sm font-semibold text-tint">Entendi</button>
-            </DialogContent>
-          </Dialog>
+        <div className="mt-4 grid grid-cols-2 divide-x divide-line rounded-[20px] border border-line bg-white py-3 text-center">
+          <button onClick={() => setHelp(true)} className="px-2"><p className="text-lg font-bold text-economy tnum">Até {maxToday}% OFF</p><p className="flex items-center justify-center gap-1 text-[11px] text-muted-ink"><Sparkles className="h-3 w-3" />Tarifa Inteligente</p></button>
+          <div className="px-2"><p className="text-lg font-bold text-forest tnum">{walkMin(salon.distanceKm)} min a pé</p><p className="flex items-center justify-center gap-1 text-[11px] text-muted-ink"><Footprints className="h-3 w-3" />{freeToday || 'Sem'} horários hoje</p></div>
         </div>
 
-        <section>
-          <h2 className="mb-2 font-display text-xl text-forest">Onde</h2>
-          <div className="grid grid-cols-2 gap-2 rounded-full bg-tint-2 p-1">
-            {([['salao', 'No Salão', Store], ['domicilio', 'A Domicílio', HomeIcon]] as const).map(([v, l, I]) => <button key={v} data-testid={`button-mode-${v}`} onClick={() => setMode(v)} className={cn('flex items-center justify-center gap-1.5 rounded-full py-2 text-xs font-semibold transition', mode === v ? 'bg-white text-forest shadow-sm' : 'text-muted-ink')}><I className="h-3.5 w-3.5" />{l}</button>)}
-          </div>
-          {mode === 'domicilio' && <p className="mt-2 text-xs text-muted-ink tnum">Taxa de deslocamento {brl(fee)} (R$ 10 até 2 km + R$ 5 por km extra · {salon.distanceKm.toString().replace('.', ',')} km)</p>}
-        </section>
+        <div className="mt-6 space-y-6">
+          <Gallery photos={photos} hero={hero} onPick={setHero} name={salon.name} />
+          <section>
+            <h2 className="tight mb-2 text-base font-bold text-forest">Onde</h2>
+            <FulfillmentToggle id="salon" />
+            {mode === 'domicilio' && <p className="mt-2 text-xs text-muted-ink tnum">Taxa de deslocamento {brl(fee)} (R$ 10 até 2 km + R$ 5 por km extra · {salon.distanceKm.toString().replace('.', ',')} km)</p>}
+          </section>
+          <ServiceCards salon={salon} svc={svc} setSvc={setSvc} duration={duration} />
+          <StaffStrip salon={salon} staff={staff} setStaff={setStaff} />
 
-        <section>
-          <h2 className="mb-2 font-display text-xl text-forest">Serviços</h2>
-          <div className="space-y-2">
-            {salon.services.map((s) => { const on = svc.includes(s.id); return (
-              <button key={s.id} data-testid={`button-service-${s.id}`} aria-pressed={on} onClick={() => setSvc(on ? svc.filter((x) => x !== s.id) : [...svc, s.id])} className={cn('flex w-full items-center justify-between rounded-2xl border p-3 text-left transition', on ? 'border-teal bg-tint' : 'border-line bg-white')}>
-                <span className="flex items-center gap-3"><span className={cn('flex h-5 w-5 items-center justify-center rounded-md border', on ? 'border-teal bg-teal text-white' : 'border-line')}>{on && <Check className="h-3 w-3" />}</span><span><span className="block text-sm font-medium text-ink">{s.name}</span><span className="text-[11px] text-muted-ink">{s.duration} min</span></span></span>
-                <span className="text-sm font-semibold text-forest tnum">{brl(s.base)}</span>
-              </button>); })}
-          </div>
-          {chosen.length > 1 && <p className="mt-2 text-xs text-muted-ink">Duração total {duration} min, incluindo 10 min de intervalo entre serviços.</p>}
-        </section>
-
-        <section>
-          <h2 className="mb-2 font-display text-xl text-forest">Profissional</h2>
-          <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
-            <button data-testid="button-staff-any" onClick={() => setStaff(null)} className={cn('shrink-0 rounded-2xl border px-4 py-3 text-left text-xs', staff === null ? 'border-teal bg-tint' : 'border-line bg-white')}><b className="block text-ink">Qualquer Profissional</b><span className="text-muted-ink">mais horários</span></button>
-            {salon.staff.map((p) => <button key={p.id} data-testid={`button-staff-${p.id}`} onClick={() => setStaff(p.id)} className={cn('flex shrink-0 items-center gap-2 rounded-2xl border px-3 py-2 text-left text-xs', staff === p.id ? 'border-teal bg-tint' : 'border-line bg-white')}>
-              <Initials name={p.name} className="h-8 w-8" /><span><b className="block text-ink">{p.name}</b><span className="text-muted-ink">{p.role} · {p.rating.toFixed(1)}</span>{p.featured && <span className="mt-0.5 flex items-center gap-1 text-[10px] font-bold text-gold"><Award className="h-3 w-3" />Destaque da Casa</span>}</span></button>)}
-          </div>
-        </section>
-
-        <section>
-          <h2 className="mb-2 font-display text-xl text-forest">Quando</h2>
-          <div className="no-scrollbar flex gap-2 overflow-x-auto">
-            {days.map((d, i) => <button key={i} data-testid={`button-day-${i}`} onClick={() => { setDay(i); setHour(null); }} className={cn('flex w-14 shrink-0 flex-col items-center rounded-2xl border py-2 text-xs transition', day === i ? 'border-forest bg-forest text-tint' : 'border-line bg-white text-ink')}><span className="capitalize opacity-80">{i === 0 ? 'Hoje' : d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}</span><b className="text-base tnum">{d.getDate()}</b></button>)}
-          </div>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {(Object.keys(PERIODS) as Period[]).map((p) => { const m = Math.max(0, ...slots(PERIODS[p]).filter((x) => x.state !== 'Ocupado').map((x) => x.disc)); return (
-              <button key={p} data-testid={`button-period-${p}`} onClick={() => setPeriod(p)} className={cn('rounded-2xl border px-2 py-2 text-xs', period === p ? 'border-teal bg-tint' : 'border-line bg-white')}><b className="block text-ink">{p}</b><span className={m ? 'font-semibold text-teal-deep' : 'text-muted-ink'}>{m ? `até -${m}%` : 'preço cheio'}</span></button>); })}
-          </div>
-          <div className="mt-3 grid grid-cols-2 gap-2 @xl:grid-cols-3">
-            {cur.map((s) => { const kl = kindLabel(s.kind); const sf = priceFor(base, s.disc); return (
-              <button key={s.h} disabled={s.state === 'Ocupado'} data-testid={`button-slot-${s.h}`} onClick={() => setHour(s.h)} className={cn('rounded-2xl border px-2 py-2 text-center text-xs transition active:scale-95', STATE_STYLE[s.state], hour === s.h && 'ring-2 ring-forest')}>
-                <b className="block text-sm tnum">{pad(s.h)}:00</b>
-                {s.state === 'Desconto' && kl ? (<span className="block tnum" data-testid={`text-slot-price-${s.h}`}>
-                  <span className="block"><s className="text-[10px] text-muted-ink">{brl(base)}</s> <b className="text-sm text-forest">{brl(sf)}</b> <span className="rounded bg-coral px-1 text-[10px] font-bold text-white">-{s.disc}%</span></span>
-                  <span className="block text-[10px] font-semibold text-teal-deep">{kl.title}</span>
-                  <span className="block text-[9px] leading-tight text-muted-ink">+ {kl.sub}</span>
-                </span>) : (<span className="block text-[10px]">{s.state}{s.state !== 'Ocupado' && <span className="block text-xs font-semibold text-ink tnum">{brl(base)}</span>}</span>)}
-              </button>
-            ); })}
-          </div>
-          <div className="mt-2 flex flex-wrap gap-3 text-[10px] text-muted-ink">{Object.keys(STATE_STYLE).map((k) => <span key={k} className="flex items-center gap-1"><span className={cn('h-2.5 w-2.5 rounded border', STATE_STYLE[k])} />{k}</span>)}</div>
-        </section>
-
-        <section>
-          <h2 className="mb-2 font-display text-xl text-forest">Avaliações</h2>
-          <div className="grid gap-2 @2xl:grid-cols-3">{salon.reviews.map((r) => <div key={r.author} className="rounded-2xl border border-line bg-white p-3"><p className="flex items-center justify-between text-xs font-semibold text-ink">{r.author}<span className="flex items-center gap-1 tnum"><Star className="h-3 w-3 fill-gold text-gold" />{r.rating}</span></p><p className="mt-1 text-xs text-muted-ink">{r.text}</p><p className="mt-1 text-[10px] text-muted-ink">{r.when}</p></div>)}</div>
-        </section>
-      </div>
-
-      <div className="sticky bottom-24 z-20 mx-4 mt-6 rounded-3xl bg-forest p-4 text-tint shadow-xl">
-        {!chosen.length ? <Empty icon={Clock} title="Escolha um serviço" text="Selecione ao menos um serviço para ver o preço." /> : (
-          <div className="flex items-center justify-between gap-3">
-            <div className="tnum">
-              {sel && sel.disc > 0 && lbl ? <p className="text-[11px] text-mint"><b>{lbl.title}</b> · {lbl.sub} · -{sel.disc}%</p> : <p className="text-[11px] text-mint-3">{sel ? `${pad(sel.h)}:00 · preço padrão` : 'Escolha um horário'}</p>}
-              <p>{sel && sel.disc > 0 && <s className="mr-2 text-xs text-mint-3">{brl(base)}</s>}<span className="text-xl font-bold" data-testid="text-total">{brl(final + fee)}</span></p>
+          <section ref={clockRef} id="agenda">
+            <h2 className="tight mb-2 text-base font-bold text-forest">Quando</h2>
+            <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 pb-1">
+              {days.map((d, i) => <motion.button whileTap={{ scale: 0.92 }} key={i} data-testid={`button-day-${i}`} aria-pressed={day === i} onClick={() => { setDay(i); setHour(null); }} className={cn('flex w-14 shrink-0 flex-col items-center rounded-2xl border py-2 text-xs transition', day === i ? 'border-forest bg-forest text-white' : 'border-line bg-white text-ink')}><span className="capitalize opacity-80">{i === 0 ? 'Hoje' : d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}</span><b className="text-base tnum">{d.getDate()}</b></motion.button>)}
             </div>
-            <button data-testid="button-reserve" disabled={!sel || sel.state === 'Ocupado'} onClick={reserve} className="rounded-full bg-mint px-5 py-3 text-sm font-bold text-forest transition hover:bg-mint-2 active:scale-95 disabled:opacity-40">Reservar</button>
-          </div>
-        )}
+            <div className="mt-3"><RadialClock slots={all} hour={hour} onHour={pickHour} period={period} onPeriod={pickPeriod} /></div>
+            <div className="mt-3 grid grid-cols-3 gap-2 @xl:grid-cols-6">
+              {cur.map((s) => (
+                <motion.button whileTap={s.state === 'Ocupado' ? undefined : { scale: 0.94 }} key={s.h} disabled={s.state === 'Ocupado'} aria-pressed={hour === s.h} data-testid={`button-slot-${s.h}`} onClick={() => pickHour(s.h)}
+                  className={cn('rounded-2xl border px-1 py-2 text-center text-xs transition', STATE_STYLE[s.state], hour === s.h && 'ring-2 ring-forest')}>
+                  <b className="block text-sm tnum">{pad(s.h)}:00</b>
+                  {s.state === 'Desconto' ? <span className="block text-[10px] tnum leading-tight" data-testid={`text-slot-price-${s.h}`}><s className="text-strike">{brl(base)}</s> <b className="text-economy">{brl(priceFor(base, s.disc))}</b><span className="block font-bold text-economy">-{s.disc}%</span>{kindLabel(s.kind) && <span className="sr-only">{kindLabel(s.kind)!.title} {kindLabel(s.kind)!.sub}</span>}</span>
+                    : <span className="block text-[10px]">{s.state}</span>}
+                </motion.button>
+              ))}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-3 text-[10px] text-muted-ink">{Object.keys(STATE_STYLE).map((k) => <span key={k} className="flex items-center gap-1"><span className={cn('h-2.5 w-2.5 rounded border', STATE_STYLE[k])} />{k}</span>)}</div>
+
+            <div className="mt-3 rounded-[20px] border border-line bg-white p-4" data-testid="card-live-price" aria-live="polite">
+              {!chosen.length ? <p className="flex items-center gap-2 text-sm text-muted-ink"><Clock className="h-4 w-4" />Selecione ao menos um serviço para ver o preço.</p> : (
+                <div className="flex items-end justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[11px] text-muted-ink">{sel ? `${pad(sel.h)}:00 · ${chosen.map((c) => c.name).join(' + ')}` : 'Escolha um horário'}</p>
+                    {lbl && sel && sel.disc > 0 && <><p className="text-sm font-bold text-economy">{lbl.title}</p><p className="text-[11px] text-muted-ink">{lbl.sub}</p></>}
+                    {sel && blocked && <p className="text-xs font-semibold text-coral">Horário indisponível</p>}
+                  </div>
+                  <div className="text-right tnum">
+                    {sel && !blocked && sel.disc > 0 && <span className="mb-0.5 inline-block rounded-full bg-coral px-2 py-0.5 text-[10px] font-bold text-white">-{sel.disc}%</span>}
+                    <p>{sel && !blocked && sel.disc > 0 && <s className="mr-1.5 text-xs text-strike">{brl(base)}</s>}<b className="text-xl text-forest" data-testid="text-total">{brl(final + fee)}</b></p>
+                    {fee > 0 && <p className="text-[10px] text-muted-ink">inclui taxa {brl(fee)}</p>}
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+
+          <GuaranteeTiles />
+          <Reviews reviews={reviews} rating={rating} />
+        </div>
       </div>
+
+      <div className="sticky bottom-0 z-20 mt-6 rounded-t-[24px] border-t border-line bg-white/95 px-4 pb-7 pt-3 backdrop-blur" data-testid="bar-checkout">
+        <motion.button whileTap={{ scale: 0.97 }} data-testid="button-reserve" disabled={blocked || !chosen.length} onClick={reserve}
+          className="flex w-full items-center justify-between rounded-full bg-forest px-5 py-3.5 text-sm font-bold text-white transition hover:bg-forest-hover disabled:bg-strike disabled:opacity-70">
+          <span className="flex items-center gap-1">Avançar para Pagamento<ChevronRight className="h-4 w-4" /></span><span className="tnum">{chosen.length && !blocked ? brl(final + fee) : sel ? 'indisponível' : 'escolha o horário'}</span>
+        </motion.button>
+      </div>
+      <PriceHelp open={help} onOpenChange={setHelp} />
     </div>
   );
 }

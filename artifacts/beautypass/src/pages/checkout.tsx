@@ -20,7 +20,7 @@ export default function CheckoutPage() {
   const [now, setNow] = useState(Date.now()); const [err, setErr] = useState(''); const busy = useRef(false); const [sending, setSending] = useState(false);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
 
-  if (!h) return <div className="px-5 pt-10"><Empty icon={Hourglass} title="Nenhuma reserva em andamento" text="Escolha um salão e um horário para começar." action={<Link href="/" className="rounded-full bg-forest px-4 py-2 text-xs font-semibold text-tint">Explorar salões</Link>} /></div>;
+  if (!h) return <div className="px-5 pt-10"><Empty icon={Hourglass} title="Nenhuma reserva em andamento" text="Escolha um salão e um horário para começar." action={<Link href="/" className="rounded-full bg-forest px-4 py-2 text-xs font-semibold text-white">Explorar salões</Link>} /></div>;
   const s = getSalon(h.salonId)!; const left = Math.max(0, h.expiresAt - now); const expired = left === 0;
   const total = h.final + h.fee; const cost = Math.round(total); const lbl = kindLabel(h.kind);
   const pix = `00020126BEAUTYPASS${hash(h.salonId + h.date + h.hour + h.expiresAt)}5204${cost}`;
@@ -41,12 +41,12 @@ export default function CheckoutPage() {
       toast({ title: 'Reserva confirmada', description: r.code }); navigate(`/confirmado/${r.code}`);
     }, 700);
   };
-  const tab = (v: Payment, l: string, I: typeof Coins) => <button key={v} data-testid={`button-pay-${v}`} onClick={() => setPay(v)} className={cn('flex flex-1 flex-col items-center gap-1 rounded-2xl border py-3 text-xs font-semibold transition', pay === v ? 'border-forest bg-forest text-tint' : 'border-line bg-white text-ink')}><I className="h-4 w-4" />{l}</button>;
+  const tab = (v: Payment, l: string, I: typeof Coins) => <button key={v} data-testid={`button-pay-${v}`} onClick={() => setPay(v)} className={cn('flex flex-1 flex-col items-center gap-1 rounded-2xl border py-3 text-xs font-semibold transition', pay === v ? 'border-forest bg-forest text-white' : 'border-line bg-white text-ink')}><I className="h-4 w-4" />{l}</button>;
   const inp = 'w-full rounded-xl border border-line bg-white px-3 py-2.5 text-sm outline-none focus:border-teal focus:ring-2 focus:ring-mint/40 tnum';
 
   return (
     <div className="mx-auto max-w-2xl">
-      <PageHeader eyebrow="Checkout" title="Confirme sua reserva" />
+      <PageHeader eyebrow="Checkout" title="Confirme sua reserva" serif={false} />
       <div className="space-y-4 px-5 pt-4">
         <div className={cn('flex items-center justify-between rounded-2xl px-4 py-3 text-sm', expired ? 'bg-coral-bg text-coral' : 'bg-tint text-forest')} data-testid="text-hold-timer">
           <span className="flex items-center gap-2"><Timer className="h-4 w-4" />{expired ? 'Tempo esgotado — horário liberado' : 'Horário reservado para você por'}</span>
@@ -54,8 +54,8 @@ export default function CheckoutPage() {
         </div>
         {expired && <button data-testid="button-hold-restart" onClick={() => { clearHold(); navigate(`/salao/${s.id}`); }} className="w-full rounded-full border border-forest py-2.5 text-sm font-semibold text-forest">Escolher novo horário</button>}
 
-        <div className="rounded-3xl border border-line bg-white p-4">
-          <p className="font-display text-lg text-forest">{s.name}</p>
+        <div className="rounded-[24px] border border-line bg-white p-4">
+          <p className="tight text-lg font-bold text-forest">{s.name}</p>
           <p className="text-xs capitalize text-muted-ink">{fmtDate(h.date)} · {pad(h.hour)}:00 · {s.services.filter((x) => h.serviceIds.includes(x.id)).map((x) => x.name).join(' + ')}</p>
           <dl className="mt-3 space-y-1 text-sm tnum">
             <div className="flex justify-between"><dt className="text-muted-ink">Preço base</dt><dd>{brl(h.base)}</dd></div>
@@ -76,8 +76,8 @@ export default function CheckoutPage() {
           <label className="text-xs text-muted-ink">Validade de teste (MM/AA)<input data-testid="input-card-exp" value={exp} onChange={(e) => setExp(e.target.value)} className={inp} /></label>
           <label className="text-xs text-muted-ink">Código de teste<input data-testid="input-card-cvv" value={cvv} onChange={(e) => setCvv(e.target.value)} className={inp} /></label>
         </div>}
-        {pay === 'pix' && <div className="flex flex-col items-center gap-2 rounded-3xl border border-line bg-white p-4"><QR value={pix} size={170} /><code className="max-w-full truncate text-[10px] text-muted-ink">{pix}</code><button data-testid="button-pix-copy" onClick={async () => { try { if (!navigator.clipboard) throw new Error('x'); await navigator.clipboard.writeText(pix); toast({ title: 'Código Pix copiado' }); } catch { toast({ title: 'Não foi possível copiar', description: 'Selecione e copie o código manualmente.', variant: 'destructive' }); } }} className="flex items-center gap-1 rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-ink"><Copy className="h-3.5 w-3.5" />Copiar código</button></div>}
-        {pay === 'credits' && <div className="rounded-3xl border border-line bg-white p-4 text-sm tnum">
+        {pay === 'pix' && <div className="flex flex-col items-center gap-2 rounded-[24px] border border-line bg-white p-4"><QR value={pix} size={170} /><code className="max-w-full truncate text-[10px] text-muted-ink">{pix}</code><button data-testid="button-pix-copy" onClick={async () => { try { if (!navigator.clipboard) throw new Error('x'); await navigator.clipboard.writeText(pix); toast({ title: 'Código Pix copiado' }); } catch { toast({ title: 'Não foi possível copiar', description: 'Selecione e copie o código manualmente.', variant: 'destructive' }); } }} className="flex items-center gap-1 rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-ink"><Copy className="h-3.5 w-3.5" />Copiar código</button></div>}
+        {pay === 'credits' && <div className="rounded-[24px] border border-line bg-white p-4 text-sm tnum">
           <p className="flex justify-between"><span className="text-muted-ink">Saldo</span><b data-testid="text-credit-balance">{st.user.credits} BC</b></p>
           <p className="flex justify-between"><span className="text-muted-ink">Débito</span><b>{cost} BC</b></p>
           <p className="mt-1 text-[11px] text-muted-ink">1 BeautyCredit = R$ 1</p>
@@ -89,7 +89,7 @@ export default function CheckoutPage() {
           <p>Ao concluir, você autoriza o salão a reter até 30% do valor em caso de não comparecimento.</p>
         </div>
         {err && <p role="alert" className="rounded-xl bg-coral-bg p-3 text-xs text-coral" data-testid="text-checkout-error">{err}</p>}
-        <button data-testid="button-confirm" disabled={expired || sending} onClick={submit} className="w-full rounded-full bg-forest py-3.5 text-sm font-bold text-tint transition hover:bg-forest-hover active:scale-[.98] disabled:opacity-50">{sending ? 'Confirmando…' : `Confirmar · ${brl(total)}`}</button>
+        <button data-testid="button-confirm" disabled={expired || sending} onClick={submit} className="w-full rounded-full bg-forest py-3.5 text-sm font-bold text-white transition hover:bg-forest-hover active:scale-[.98] disabled:opacity-50">{sending ? 'Confirmando…' : `Confirmar · ${brl(total)}`}</button>
         <button onClick={() => { clearHold(); navigate(`/salao/${s.id}`); }} className="flex w-full items-center justify-center gap-1 text-xs text-muted-ink"><ArrowLeft className="h-3 w-3" />Voltar e liberar horário</button>
       </div>
     </div>
