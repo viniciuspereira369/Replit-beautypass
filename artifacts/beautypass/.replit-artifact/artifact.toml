@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "BeautyPass"
+description = "Marketplace de beleza e clube de assinatura em São Paulo, com reservas, BeautyCredits e painel B2B. Demo inteiramente client-side com dados no localStorage."
+version = "1.0.0"
+id = "artifacts/beautypass"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25345
+
+[services.development]
+run = "pnpm --filter @workspace/beautypass run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/beautypass", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/beautypass/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25345"
+BASE_PATH = "/"
