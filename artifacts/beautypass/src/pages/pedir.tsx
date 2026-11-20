@@ -3,7 +3,7 @@ import { useLocation } from 'wouter';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Star, Footprints, CalendarX, ArrowLeft, MapPin, Scissors, Sparkles, Hand, Flower2, Droplets, LayoutGrid, Map, Check, Clock } from 'lucide-react';
 import { SALONS } from '@/lib/data';
-import { brl, dateKey, domicileFee, kindLabel, pad } from '@/lib/pricing';
+import { brl, dateKey, kindLabel, pad } from '@/lib/pricing';
 import { startHold, useStore } from '@/lib/store';
 import { salonRating } from '@/lib/experience';
 import { categoryPhoto } from '@/lib/media';
@@ -11,7 +11,6 @@ import { Empty } from '@/components/shell';
 import { Photo } from '@/components/art';
 import { RouteMap } from '@/components/route-map';
 import { RadarScan } from '@/components/radar-scan';
-import { FulfillmentToggle } from '@/components/fulfillment-toggle';
 import { fmtKm, fmtRating, liveDiscount } from '@/components/salon-card';
 import { findMatches, WINDOWS, type Match, type Win } from '@/components/pedir-match';
 import { useGuide } from '@/hooks/use-guide';
@@ -30,12 +29,10 @@ export default function PedirPage() {
   const top = useRef<HTMLDivElement>(null);
   useEffect(() => { top.current?.scrollIntoView({ block: 'start' }); }, [phase]);
   const finish = () => { setRes(findMatches(cat, win)); setPick(0); setPhase('done'); };
-  const mode = st.fulfillment ?? 'salao';
   const m = res[pick];
-  const fee = m && mode === 'domicilio' ? domicileFee(m.salon.distanceKm) : 0;
   const book = () => {
     if (!m) return;
-    startHold({ salonId: m.salon.id, serviceIds: [m.salon.services[0].id], staffId: null, date: m.date, hour: m.hour, mode, base: m.base, final: m.final, fee, disc: m.disc, kind: m.kind });
+    startHold({ salonId: m.salon.id, serviceIds: [m.salon.services[0].id], staffId: null, date: m.date, hour: m.hour, base: m.base, final: m.final, disc: m.disc, kind: m.kind });
     navigate('/checkout');
   };
   const catRange = (c: string) => {
@@ -63,7 +60,6 @@ export default function PedirPage() {
               <div className="flex items-center gap-3 px-4 py-3"><span className="h-2.5 w-2.5 rounded-full bg-teal ring-4 ring-economy-bg" /><div><p className="text-[10px] font-semibold uppercase tracking-wide text-muted-ink">Onde</p><p className="text-sm font-semibold text-ink">Pinheiros, São Paulo <span className="font-normal text-muted-ink">· Raio 3 km</span></p></div></div>
               <div className="flex items-center gap-3 border-t border-line px-4 py-3"><span className="h-2.5 w-2.5 rounded-sm bg-forest" /><div><p className="text-[10px] font-semibold uppercase tracking-wide text-muted-ink">Procedimento</p><p className="text-sm font-semibold text-ink">{CATS.find((x) => x.c === cat)?.l}</p></div></div>
             </div>
-            <FulfillmentToggle id="pedir" />
             <ul className="divide-y divide-line overflow-hidden rounded-[22px] border border-line bg-white" role="radiogroup" aria-label="Procedimento">
               {CATS.map(({ c, i: I, l }) => { const r = catRange(c); const on = cat === c; return (
                 <li key={c}><button role="radio" aria-checked={on} data-testid={`button-pedir-cat-${c}`} onClick={() => setCat(c)} className={cn('flex w-full items-center gap-3 px-4 py-3 text-left transition', on ? 'bg-tint' : 'hover:bg-porcelain')}>
@@ -100,7 +96,7 @@ export default function PedirPage() {
               <p className="mt-2 flex items-center gap-1 text-[11px] text-muted-ink"><MapPin className="h-3 w-3" />Preço justo: nunca abaixo de R$ 30 ou 45% do valor base.</p>
               <div className="sticky bottom-3 z-20 mt-4">
                 <motion.button whileTap={{ scale: 0.97 }} data-testid="button-match-book" onClick={book} className="flex w-full items-center justify-between rounded-full bg-forest px-5 py-3.5 text-sm font-bold text-white shadow-[0_16px_30px_-14px_rgba(18,62,53,.8)]">
-                  <span>Confirmar Encaixe</span><span className="tnum">{m ? brl(m.final + fee) : ''}{fee > 0 && <span className="ml-1 text-[10px] font-normal text-mint">c/ taxa</span>}</span>
+                  <span>Confirmar Encaixe</span><span className="tnum">{m ? brl(m.final) : ''}</span>
                 </motion.button>
               </div>
             </>)}

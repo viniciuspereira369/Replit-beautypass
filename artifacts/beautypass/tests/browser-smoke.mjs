@@ -85,10 +85,24 @@ try {
   let code;
   if (!process.argv.includes('--map-onward')) {
   await go('/');
+  const existing = await state();
+  await evaluate(`(() => {
+    const saved = JSON.parse(localStorage.getItem('bp:state:v1'));
+    saved.user = {...saved.user, plan:'Essencial', credits:185};
+    saved.fulfillment = 'domicilio';
+    saved.bookings = saved.bookings.map(b=>({...b, mode:'domicilio', address:'Endereço antigo', fee:20, payment:'credits'}));
+    localStorage.setItem('bp:state:v1', JSON.stringify(saved));
+  })()`);
+  await go('/');
+  assert.equal((await state()).bookings.length, existing.bookings.length);
+  assert.ok((await state()).bookings.every((b) => b.payment === 'pix' && !('fee' in b) && !('mode' in b) && !('address' in b)));
+  assert.equal('credits' in (await state()).user, false);
+  console.log('PASS browser reload migrates legacy bookings without former products or surcharges');
   await click('button-reset-demo');
   await until(`!document.querySelector('[data-testid="splash"]')`, 'reset splash ends');
   assert.ok(await evaluate(`document.querySelector('main').getBoundingClientRect().width <= 412`));
-  await click('button-toggle-hub');
+  assert.ok(await evaluate(`document.querySelector('[data-testid="text-deals-title"]').textContent.includes('Até 35% OFF')`));
+  await click('button-explore-deals');
   await click('pill-discount-35');
   assert.ok(await evaluate(`document.querySelector('[data-testid="pill-discount-35"]').getAttribute('aria-pressed') === 'true'`));
   await input('input-search', 'atelie');
@@ -124,12 +138,24 @@ try {
   await click('button-reserve');
   await until(`location.pathname === '/checkout'`, 'checkout');
   assert.equal(await evaluate(`document.querySelector('[data-testid="text-checkout-total"]').textContent`), quote);
+  assert.ok(await evaluate(`!!document.querySelector('[data-testid="panel-pix"]')`));
+  assert.equal(await evaluate(`document.querySelectorAll('[data-testid^="button-pay-"]').length`), 2);
+  assert.equal(await evaluate(`!!document.querySelector('[data-testid="input-address"]')`), false);
+  assert.ok(await evaluate(`document.querySelector('[data-testid="text-checkout-address"]').textContent.includes('São Paulo')`));
   await input('input-notes', 'Prefiro acabamento natural. Demonstração para os jurados.');
   await click('button-pay-card');
   await input('input-card', '1111 1111 1111 1111');
+  await input('input-card-name', '');
+  await input('input-card-exp', '01/20');
+  await input('input-card-cvv', '12');
   await click('button-confirm');
-  assert.ok(await evaluate(`document.querySelector('[data-testid="text-checkout-error"]')?.textContent.includes('inválido')`));
+  for (const field of ['card', 'name', 'exp', 'cvv']) {
+    assert.ok(await evaluate(`document.querySelector('[data-testid="text-error-${field}"]')?.textContent.length > 5`));
+  }
   await input('input-card', '4111 1111 1111 1111');
+  await input('input-card-name', 'CAMILA ALVES');
+  await input('input-card-exp', `12/${String((new Date().getFullYear() + 3) % 100).padStart(2, '0')}`);
+  await input('input-card-cvv', '1234');
   await click('button-confirm');
   await until(`location.pathname.startsWith('/confirmado/BP-')`, 'booking confirmation');
   code = (await state()).bookings[0].code;
@@ -163,6 +189,16 @@ try {
   await go('/salao/atelie-belle-epoque');
   assert.ok(await evaluate(`document.querySelector('main').innerText.includes('Atendimento excelente, pontual e muito cuidadoso.')`));
   console.log('PASS B2B rule, live charts, check-in ledger, unlocked review and updated salon reviews after reload');
+  await go('/perfil');
+  assert.equal(await evaluate('document.title'), 'BeautyPass — Passaporte & Ajustes');
+  assert.ok(await evaluate(`document.querySelector('[data-testid="text-access-pill"]').textContent.includes('Acesso Gratuito')`));
+  await click('button-pref-card');
+  await go('/perfil');
+  assert.equal(await evaluate(`document.querySelector('[data-testid="button-pref-card"]').getAttribute('aria-checked')`), 'true');
+  assert.equal((await state()).user.preferredPayment, 'card');
+  const displayedSavings = await evaluate(`document.querySelector('[data-testid="text-saved"]').textContent`);
+  assert.ok(displayedSavings.includes((await state()).user.saved.toFixed(2).replace('.', ',')));
+  console.log('PASS personal passport savings and persisted direct payment preference');
   } else {
     code = (await state()).bookings[0].code;
   }
@@ -180,7 +216,25 @@ try {
   await click('button-match-book');
   await until(`location.pathname === '/checkout'`, 'instant checkout');
   assert.ok((await state()).hold.final >= 30);
-  console.log('PASS map sheet selection/recenter and instant match → checkout');
+  assert.equal(await evaluate(`document.querySelector('[data-testid="button-pay-card"]').getAttribute('aria-checked')`), 'true');
+  await click('button-pay-pix');
+  assert.ok(await evaluate(`document.querySelector('[data-testid="input-pix-code"]').value.startsWith('000201')`));
+  await click('button-pix-copy');
+  const pixPrice = (await state()).hold.final;
+  await click('button-confirm');
+  await until(`location.pathname.startsWith('/confirmado/BP-')`, 'Pix confirmation');
+  const pixBooking = (await state()).bookings[0];
+  assert.equal(pixBooking.payment, 'pix');
+  assert.equal(pixBooking.final, pixPrice);
+  assert.equal('fee' in pixBooking, false);
+  await go('/reservas');
+  await click(`button-cancel-${pixBooking.code}`);
+  assert.equal(await evaluate(`document.querySelector('[data-testid="text-cancel-policy"]').textContent.includes('BC')`), false);
+  assert.ok(await evaluate(`document.querySelector('[data-testid="text-cancel-policy"]').textContent.includes('R$')`));
+  await click('radio-reason-Mudei de planos');
+  await click('button-cancel-confirm');
+  assert.equal((await state()).bookings.find((b) => b.code === pixBooking.code).status, 'CANCELLED_BY_USER');
+  console.log('PASS map, instant match, saved checkout preference, direct Pix and cancellation in BRL');
 
   await call('Emulation.setDeviceMetricsOverride', { width: 412, height: 915, deviceScaleFactor: 1, mobile: true });
   await go('/perfil');

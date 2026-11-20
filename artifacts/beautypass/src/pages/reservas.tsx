@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams } from 'wouter';
 import { motion } from 'framer-motion';
-import { CalendarCheck, X, Navigation, Star, QrCode, Home as HomeIcon, BadgeCheck } from 'lucide-react';
+import { CalendarCheck, X, Navigation, Star, QrCode, Home as HomeIcon, BadgeCheck, MapPin } from 'lucide-react';
 import { getSalon } from '@/lib/data';
 import { brl, fmtDate, pad, slotStart } from '@/lib/pricing';
 import { cancelBooking, cancelPolicy, useStore, type Booking } from '@/lib/store';
@@ -25,7 +25,7 @@ function CancelModal({ b, onClose }: { b: Booking; onClose: () => void }) {
       <div className="rise max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-y-auto rounded-[28px] bg-white p-5">
         <div className="flex items-center justify-between"><h2 id="cancel-title" className="tight text-xl font-bold text-forest">Cancelar <span className="font-mono">{b.code}</span></h2><button aria-label="Fechar" onClick={onClose} className="rounded-full bg-tint p-1.5"><X className="h-4 w-4" /></button></div>
         <div className={cn('mt-3 rounded-2xl p-3 text-xs tnum', p.free ? 'bg-economy-bg text-forest' : 'bg-coral-bg text-coral')} data-testid="text-cancel-policy">
-          {p.free ? <>Faltam mais de 24h. Cancelamento gratuito: reembolso integral de {brl(p.refund)}.</> : <>Faltam menos de 24h. Multa de 30% ({brl(p.fee)}). Reembolso de {brl(p.refund)}{b.payment === 'credits' ? ` (${Math.round(p.refund)} BC)` : ''}.</>}
+          {p.free ? <>Faltam mais de 24h. Cancelamento gratuito: reembolso integral de {brl(p.refund)}.</> : <>Faltam menos de 24h. Multa de 30% ({brl(p.fee)}). Reembolso de {brl(p.refund)}.</>}
         </div>
         <fieldset className="mt-4 space-y-2"><legend className="mb-1 text-xs font-semibold text-ink">Motivo</legend>
           {REASONS.map((x) => <label key={x} className={cn('flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-sm', r === x ? 'border-teal bg-tint' : 'border-line bg-white')}><input type="radio" name="reason" value={x} checked={r === x} onChange={() => setR(x)} data-testid={`radio-reason-${x}`} className="accent-teal" />{x}</label>)}
@@ -58,9 +58,10 @@ export default function ReservasPage() {
               <div className="min-w-0 flex-1"><p className="tight truncate text-base font-bold text-forest">{s.name}</p><p className="text-xs capitalize text-muted-ink tnum">{fmtDate(b.date)} · {pad(b.hour)}:00 · <span className="font-mono normal-case">{b.code}</span></p></div>
               <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold', STATUS_PT[b.status].c)}>{STATUS_PT[b.status].t}</span>
             </div>
+            <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-ink" data-testid={`text-booking-address-${b.code}`}><MapPin className="h-3.5 w-3.5 shrink-0 text-teal" />{s.address}, {s.hood} · São Paulo</p>
             {b.notes && <p className="mt-2 rounded-xl bg-amber-bg p-2 text-xs text-ink">Obs.: {b.notes}</p>}
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-              <p className="tnum">{b.disc > 0 && <s className="mr-1 text-xs text-strike">{brl(b.base)}</s>}<b className="text-forest">{brl(b.final + b.fee)}</b>{b.disc > 0 && <span className="ml-1 text-xs font-semibold text-economy">-{b.disc}%</span>}</p>
+              <p className="tnum">{b.disc > 0 && <s className="mr-1 text-xs text-strike">{brl(b.base)}</s>}<b className="text-forest">{brl(b.final)}</b>{b.disc > 0 && <span className="ml-1 text-xs font-semibold text-economy">-{b.disc}%</span>}</p>
               <div className="flex flex-wrap gap-2">
                 <button data-testid={`button-voucher-${b.code}`} onClick={() => setVoucher(b)} className="flex items-center gap-1 rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-ink"><QrCode className="h-3.5 w-3.5" />Ver QR Code & Voucher</button>
                 {b.status === 'CONFIRMED' && <button data-testid={`button-cancel-${b.code}`} onClick={() => setCancel(b)} className="rounded-full bg-coral-bg px-3 py-1.5 text-xs font-semibold text-coral">Cancelar</button>}

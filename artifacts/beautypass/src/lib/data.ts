@@ -68,10 +68,3 @@ export const SALONS: Salon[] = raw.map((r) => {
 export const getSalon = (id: string) => SALONS.find((s) => s.id === id);
 export const CATEGORIES = ['Todos', 'Cabelo', 'Barba', 'Unhas', 'Massagem', 'Estética'] as const;
 export const USER_POS = { x: 206, y: 266 };
-
-export const PLANS = {
-  Essencial: { price: 89, credits: 120, vouchers: 2 },
-  'Black VIP': { price: 189, credits: 260, vouchers: 4 },
-} as const;
-export type PlanName = keyof typeof PLANS;
-export const TOPUPS = [{ credits: 50, price: 45 }, { credits: 120, price: 99 }, { credits: 250, price: 189 }];

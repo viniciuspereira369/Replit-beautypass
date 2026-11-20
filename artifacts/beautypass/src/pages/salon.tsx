@@ -3,13 +3,12 @@ import { useLocation, useParams } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Star, MapPin, HelpCircle, Clock, Footprints, Sparkles, ChevronRight } from 'lucide-react';
 import { getSalon } from '@/lib/data';
-import { addDays, brl, dateKey, domicileFee, kindLabel, pad, PERIODS, type Period, priceFor, slotDiscount, slotState } from '@/lib/pricing';
+import { addDays, brl, dateKey, kindLabel, pad, PERIODS, type Period, priceFor, slotDiscount, slotState } from '@/lib/pricing';
 import { isTaken, startHold, useStore } from '@/lib/store';
 import { salonRating, salonReviews } from '@/lib/experience';
 import { galleryFor, specialistPhoto } from '@/lib/media';
 import { Photo, Portrait } from '@/components/art';
 import { FavButton, FriendStack, LiveProof, fmtRating, liveDiscount, walkMin } from '@/components/salon-card';
-import { FulfillmentToggle } from '@/components/fulfillment-toggle';
 import { RadialClock } from '@/components/radial-clock';
 import { PriceHelp } from '@/components/price-help';
 import { Gallery, GuaranteeTiles, Reviews, ServiceCards, StaffStrip, galleryCrop } from '@/components/salon-parts';
@@ -33,14 +32,12 @@ export default function SalonPage() {
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(new Date(), i)), []);
   const clockRef = useGuide<HTMLElement>('salon-clock');
   if (!salon) return <NotFound />;
-  const mode = st.fulfillment ?? 'salao';
   const reviews = salonReviews(salon, st.reviews ?? []); const rating = salonRating(salon, st.reviews ?? []);
   const photos = galleryFor(salon);
   const key = dateKey(days[day]);
   const chosen = salon.services.filter((s) => svc.includes(s.id));
   const base = chosen.reduce((a, s) => a + s.base, 0);
   const duration = chosen.reduce((a, s) => a + s.duration, 0) + Math.max(0, chosen.length - 1) * 10;
-  const fee = mode === 'domicilio' ? domicileFee(salon.distanceKm) : 0;
   const slots = (hs: readonly number[]) => hs.map((h) => { const r = slotDiscount(salon, key, h, st.rules); const state = r.past ? 'Ocupado' : slotState(salon, key, h, r.disc, isTaken(st, salon.id, key, h, duration || 60)); return { h, ...r, state }; });
   const all = slots([9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
   const cur = all.filter((s) => (PERIODS[period] as readonly number[]).includes(s.h));
@@ -58,7 +55,7 @@ export default function SalonPage() {
 
   const reserve = () => {
     if (!sel || blocked || !chosen.length) return;
-    startHold({ salonId: salon.id, serviceIds: svc, staffId: staff, date: key, hour: sel.h, mode, base, final, fee, disc: sel.disc, kind: sel.kind });
+    startHold({ salonId: salon.id, serviceIds: svc, staffId: staff, date: key, hour: sel.h, base, final, disc: sel.disc, kind: sel.kind });
     navigate('/checkout');
   };
   const darkBtn = 'flex h-9 w-9 items-center justify-center rounded-full bg-[#0C2D26]/45 text-white backdrop-blur-md transition active:scale-90';
@@ -102,8 +99,10 @@ export default function SalonPage() {
           <Gallery photos={photos} hero={hero} onPick={setHero} name={salon.name} />
           <section>
             <h2 className="tight mb-2 text-base font-bold text-forest">Onde</h2>
-            <FulfillmentToggle id="salon" />
-            {mode === 'domicilio' && <p className="mt-2 text-xs text-muted-ink tnum">Taxa de deslocamento {brl(fee)} (R$ 10 até 2 km + R$ 5 por km extra · {salon.distanceKm.toString().replace('.', ',')} km)</p>}
+            <div className="flex items-center gap-3 rounded-[20px] border border-line bg-porcelain p-3.5" data-testid="text-salon-address">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-forest text-mint"><MapPin className="h-4 w-4" /></span>
+              <div className="min-w-0 flex-1"><p className="text-sm font-semibold text-forest">{salon.address}</p><p className="text-[11px] text-muted-ink">{salon.hood}, São Paulo · atendimento exclusivo no salão</p></div>
+            </div>
           </section>
           <ServiceCards salon={salon} svc={svc} setSvc={setSvc} duration={duration} />
           <StaffStrip salon={salon} staff={staff} setStaff={setStaff} />
@@ -136,8 +135,7 @@ export default function SalonPage() {
                   </div>
                   <div className="text-right tnum">
                     {sel && !blocked && sel.disc > 0 && <span className="mb-0.5 inline-block rounded-full bg-coral px-2 py-0.5 text-[10px] font-bold text-white">-{sel.disc}%</span>}
-                    <p>{sel && !blocked && sel.disc > 0 && <s className="mr-1.5 text-xs text-strike">{brl(base)}</s>}<b className="text-xl text-forest" data-testid="text-total">{brl(final + fee)}</b></p>
-                    {fee > 0 && <p className="text-[10px] text-muted-ink">inclui taxa {brl(fee)}</p>}
+                    <p>{sel && !blocked && sel.disc > 0 && <s className="mr-1.5 text-xs text-strike">{brl(base)}</s>}<b className="text-xl text-forest" data-testid="text-total">{brl(final)}</b></p>
                   </div>
                 </div>
               )}
@@ -152,7 +150,7 @@ export default function SalonPage() {
       <div className="sticky bottom-0 z-20 mt-6 rounded-t-[24px] border-t border-line bg-white/95 px-4 pb-7 pt-3 backdrop-blur" data-testid="bar-checkout">
         <motion.button whileTap={{ scale: 0.97 }} data-testid="button-reserve" disabled={blocked || !chosen.length} onClick={reserve}
           className="flex w-full items-center justify-between rounded-full bg-forest px-5 py-3.5 text-sm font-bold text-white transition hover:bg-forest-hover disabled:bg-strike disabled:opacity-70">
-          <span className="flex items-center gap-1">Avançar para Pagamento<ChevronRight className="h-4 w-4" /></span><span className="tnum">{chosen.length && !blocked ? brl(final + fee) : sel ? 'indisponível' : 'escolha o horário'}</span>
+          <span className="flex items-center gap-1">Avançar para Pagamento<ChevronRight className="h-4 w-4" /></span><span className="tnum">{chosen.length && !blocked ? brl(final) : sel ? 'indisponível' : 'escolha o horário'}</span>
         </motion.button>
       </div>
       <PriceHelp open={help} onOpenChange={setHelp} />

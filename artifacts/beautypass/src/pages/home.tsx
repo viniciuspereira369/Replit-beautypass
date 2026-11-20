@@ -1,16 +1,15 @@
 import { useMemo, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Search, MapPin, X, Gift, SearchX, LayoutGrid, Scissors, Sparkles, Hand, Flower2, Droplets, Ticket, ChevronDown, Star } from 'lucide-react';
+import { Search, MapPin, X, BadgePercent, SearchX, LayoutGrid, Scissors, Sparkles, Hand, Flower2, Droplets, Ticket, ChevronDown, Star } from 'lucide-react';
 import { CATEGORIES, SALONS } from '@/lib/data';
 import { HOURS, dateKey, norm, slotDiscount, slotState } from '@/lib/pricing';
-import { dismissClub, isTaken, setFulfillment, useStore } from '@/lib/store';
+import { dismissDeals, isTaken, useStore } from '@/lib/store';
 import { salonRating } from '@/lib/experience';
 import { categoryPhoto } from '@/lib/media';
 import { fmtRating, liveDiscount, SalonCard } from '@/components/salon-card';
 import { Empty } from '@/components/shell';
 import { Photo } from '@/components/art';
-import { FulfillmentToggle } from '@/components/fulfillment-toggle';
 import { SavingsHub, type Shortcut } from '@/components/savings-hub';
 import { cn } from '@/lib/utils';
 
@@ -23,7 +22,6 @@ export default function HomePage() {
   const [q, setQ] = useState(''); const [cat, setCat] = useState<string>('Todos');
   const [sort, setSort] = useState<(typeof SORTS)[number]>('Todos'); const [minD, setMinD] = useState(0);
   const [hub, setHub] = useState(false); const [superOnly, setSuperOnly] = useState(false); const [todayOnly, setTodayOnly] = useState(false);
-  const done = Math.min(3, st.bookings.filter((b) => b.status === 'COMPLETED').length);
   const reviews = st.reviews ?? [];
   const today = dateKey(new Date());
 
@@ -39,13 +37,12 @@ export default function HomePage() {
   }, [q, cat, sort, minD, superOnly, todayOnly, st, reviews, today]);
   const featured = useMemo(() => [...SALONS].sort((a, b) => salonRating(b, reviews) - salonRating(a, reviews)).slice(0, 5), [reviews]);
 
-  const active: Shortcut[] = [...(todayOnly ? ['encaixe' as const] : []), ...(sort === 'Mais Próximos' ? ['perto' as const] : []), ...(superOnly ? ['super' as const] : []), ...(sort === 'Favoritos' ? ['favoritos' as const] : []), ...(st.fulfillment === 'domicilio' ? ['domicilio' as const] : [])];
+  const active: Shortcut[] = [...(todayOnly ? ['encaixe' as const] : []), ...(sort === 'Mais Próximos' ? ['perto' as const] : []), ...(superOnly ? ['super' as const] : []), ...(sort === 'Favoritos' ? ['favoritos' as const] : [])];
   const onShortcut = (s: Shortcut) => {
     if (s === 'encaixe') setTodayOnly(!todayOnly);
     if (s === 'perto') setSort(sort === 'Mais Próximos' ? 'Todos' : 'Mais Próximos');
     if (s === 'super') setSuperOnly(!superOnly);
     if (s === 'favoritos') setSort(sort === 'Favoritos' ? 'Todos' : 'Favoritos');
-    if (s === 'domicilio') setFulfillment(st.fulfillment === 'domicilio' ? 'salao' : 'domicilio');
     if (s === 'mapa') navigate('/mapa');
   };
   const clear = () => { setQ(''); setCat('Todos'); setMinD(0); setSort('Todos'); setSuperOnly(false); setTodayOnly(false); };
@@ -58,7 +55,6 @@ export default function HomePage() {
             <Link href="/mapa" data-testid="link-location" className="flex items-center gap-1 text-[11px] font-semibold text-teal-deep"><MapPin className="h-3.5 w-3.5" />Pinheiros, SP<ChevronDown className="h-3 w-3" /></Link>
             <h1 className="tight mt-0.5 text-2xl font-bold text-forest" data-testid="text-greeting">Olá, {st.user.name.split(' ')[0]}</h1>
           </div>
-          <FulfillmentToggle compact id="home" />
         </div>
         <div className="mt-4 flex items-center gap-2 rounded-full border border-line bg-white py-1.5 pl-4 pr-1.5 shadow-[0_10px_30px_-22px_rgba(18,62,53,.5)] focus-within:border-teal focus-within:ring-2 focus-within:ring-mint/40">
           <Search className="h-4 w-4 shrink-0 text-muted-ink" /><label htmlFor="home-search" className="sr-only">Buscar procedimento</label>
@@ -72,14 +68,15 @@ export default function HomePage() {
         <AnimatePresence initial={false}>{hub && <SavingsHub minD={minD} setMinD={setMinD} active={active} onShortcut={onShortcut} />}</AnimatePresence>
       </section>
 
-      {!st.user.clubDismissed && (
-        <section className="rise mx-5 mt-4 flex items-center gap-3 rounded-2xl border border-mint-3 bg-economy-bg px-3.5 py-3" data-testid="card-club">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-economy"><Gift className="h-4 w-4" /></span>
+      {!st.user.dealsDismissed && (
+        <section className="rise mx-5 mt-4 flex items-start gap-3 rounded-2xl border border-mint-3 bg-economy-bg px-3.5 py-3" data-testid="card-deals">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-economy"><BadgePercent className="h-4 w-4" /></span>
           <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-bold text-forest">Clube BeautyPass · 15% de cashback</p>
-            <div className="mt-1.5 flex items-center gap-2"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white"><motion.div className="h-full rounded-full bg-economy" initial={{ width: 0 }} animate={{ width: `${(done / 3) * 100}%` }} /></div><span className="text-[11px] font-bold text-economy tnum">{done}/3</span></div>
+            <p className="text-[12px] font-bold text-forest" data-testid="text-deals-title">Tarifas Inteligentes · Até 35% OFF nos horários econômicos</p>
+            <p className="mt-0.5 text-[11px] leading-snug text-ink">Sem assinatura ou mensalidade — reserve grátis e pague apenas pelo agendamento</p>
+            <button data-testid="button-explore-deals" onClick={() => setHub(true)} className="mt-2 rounded-full bg-forest px-3 py-1 text-[11px] font-semibold text-white transition active:scale-95">Explorar ofertas</button>
           </div>
-          <button data-testid="button-dismiss-club" aria-label="Dispensar clube" onClick={dismissClub} className="rounded-full p-1 text-muted-ink hover:bg-white"><X className="h-4 w-4" /></button>
+          <button data-testid="button-dismiss-deals" aria-label="Dispensar aviso de tarifas" onClick={dismissDeals} className="rounded-full p-1 text-muted-ink hover:bg-white"><X className="h-4 w-4" /></button>
         </section>
       )}
 

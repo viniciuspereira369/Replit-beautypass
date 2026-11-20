@@ -1,13 +1,13 @@
 import { motion } from 'framer-motion';
-import { Zap, Navigation, Crown, Heart, Home as HomeIcon, Map } from 'lucide-react';
+import { Zap, Navigation, Crown, Heart, Map } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type Shortcut = 'encaixe' | 'perto' | 'super' | 'favoritos' | 'domicilio' | 'mapa';
+export type Shortcut = 'encaixe' | 'perto' | 'super' | 'favoritos' | 'mapa';
 const COUPONS = [{ d: 15, t: 'Leve' }, { d: 25, t: 'Econômico' }, { d: 30, t: 'Premium' }, { d: 35, t: 'Hoje', hot: true }];
 const SHORTS: { id: Shortcut; label: string; icon: typeof Zap; dark?: boolean }[] = [
   { id: 'encaixe', label: 'Encaixe Hoje', icon: Zap }, { id: 'perto', label: 'Perto de mim', icon: Navigation },
   { id: 'super', label: 'Super Salões 4.8+', icon: Crown, dark: true }, { id: 'favoritos', label: 'Favoritos', icon: Heart },
-  { id: 'domicilio', label: 'Em casa', icon: HomeIcon }, { id: 'mapa', label: 'Ver no mapa', icon: Map },
+  { id: 'mapa', label: 'Ver no mapa', icon: Map },
 ];
 
 export function SavingsHub({ minD, setMinD, active, onShortcut }: { minD: number; setMinD: (n: number) => void; active: Shortcut[]; onShortcut: (s: Shortcut) => void }) {

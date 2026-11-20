@@ -1,6 +1,6 @@
 # BeautyPass
 
-Marketplace de beleza e clube de assinatura demonstrativo em São Paulo. “Sua beleza, no seu tempo.”
+Marketplace gratuito de beleza em São Paulo, com atendimento exclusivamente presencial nos salões parceiros e pagamento por agendamento em reais. “Sua beleza, no seu tempo.”
 
 ## Run & Operate
 
@@ -26,22 +26,24 @@ Marketplace de beleza e clube de assinatura demonstrativo em São Paulo. “Sua 
 
 ## Architecture decisions
 
-- Cashback is released on completed check-in for the first three completed appointments, rather than before service delivery. Why: cancellations must not generate free cashback.
+- BeautyPass is exclusively an in-salon, pay-per-appointment marketplace. Do not reintroduce home service, subscriptions, monthly plans, virtual balances, top-ups or cashback. Why: the user explicitly deferred those product ideas.
+- Client payments are simulated Pix or card payments in BRL; Pix is the default until the user saves a card preference. Why: access is free and each appointment is paid individually.
 - Partner/client synchronization is local to this browser and same-origin browser tabs. Why: this hackathon explicitly excludes a backend.
 - Use the official BeautyPass Android photos and botanical emblems as normal public image sources, with mint-tinted icon fallbacks. Why: the user requested Android brand fidelity rather than abstract illustrations.
-- Preserve existing local demo records when adding fields. Why: visual upgrades must not clear bookings, credits, rules or vouchers.
+- Migrate existing local demo records instead of clearing them. Retain service-only price snapshots, vouchers, notes, favorites, rules and reviews; discard obsolete product fields. Why: changing the marketplace model must not erase users' demo bookings.
+- Accumulated savings equal the BRL sum of base minus final prices on confirmed and completed bookings; cancelled bookings do not count. Why: the passport must show demonstrable savings, not a balance or reward currency.
 - Verified reviews become available only for completed bookings and count once per voucher. Seed salon ratings retain their original weighting when new reviews are added. Why: the seed ratings must stay intact until a real demo review is submitted.
 - Partner charts distinguish illustrative dynamic-pricing projections from completed-voucher payouts. Why: a local hackathon demo cannot claim to measure real conversion uplift.
 
 ## Product
 
-PT-BR discovery and map, instant matching, salon agendas with economic slots, simulated checkout, QR vouchers, cancellations, credits and membership plans. The salon portal manages dynamic discounts, checks in bookings and computes simulated D+1 payouts.
+PT-BR discovery and map, instant matching, salon agendas with economic slots, direct simulated Pix/card checkout in BRL, QR vouchers, cancellations and a personal savings passport. The salon portal manages dynamic discounts, checks in bookings and computes simulated D+1 payouts.
 
 ## User preferences
 
 - Keep this hackathon MVP entirely client-side with persisted demo state and a one-click demo reset.
 - Do not add backend services, databases, payment gateways, OAuth, external map tiles, or paid API keys.
-- All payments, top-ups, memberships, and QR check-ins are simulations.
+- Payments and QR check-ins are simulations.
 - Use PT-BR copy, mint/forest branding, crisp stroke icons, official real photography, no pure black and no emojis.
 - Playfair Display is reserved for the wordmark, salon hero titles, and appointments/profile headers; other UI uses Inter.
 - On desktop, default to the 412px phone showcase; the salon portal remains a wide dashboard.
@@ -49,7 +51,7 @@ PT-BR discovery and map, instant matching, salon agendas with economic slots, si
 ## Gotchas
 
 - Reset removes BeautyPass demo data only, not unrelated localStorage.
-- Monetary values are BRL; one BeautyCredit equals R$ 1,00, with integer credit deductions.
+- Monetary values are BRL. Booking totals are service-only prices, without displacement surcharges; cancellation fees and the partner's 12% platform fee remain distinct.
 - Confirmed booking prices are frozen snapshots; rule changes affect new bookings only.
 
 ## Pointers

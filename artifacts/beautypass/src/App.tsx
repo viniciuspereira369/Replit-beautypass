@@ -23,7 +23,7 @@ function Router() {
   useEffect(() => {
     const section = loc.startsWith('/salao/') ? 'Salão e agenda' :
       loc.startsWith('/confirmado/') ? 'Reserva confirmada' :
-      ({ '/': 'Sua beleza, no seu tempo.', '/mapa': 'Mapa de salões', '/pedir': 'Pedir Agora', '/checkout': 'Confirmar reserva', '/reservas': 'Minhas reservas', '/perfil': 'Clube BeautyPass', '/painel': 'Painel Salão B2B' } as Record<string, string>)[loc] ?? 'Página não encontrada';
+      ({ '/': 'Sua beleza, no seu tempo.', '/mapa': 'Mapa de salões', '/pedir': 'Pedir Agora', '/checkout': 'Confirmar reserva', '/reservas': 'Minhas reservas', '/perfil': 'Passaporte & Ajustes', '/painel': 'Painel Salão B2B' } as Record<string, string>)[loc] ?? 'Página não encontrada';
     document.title = `BeautyPass — ${section}`;
   }, [loc]);
   return (

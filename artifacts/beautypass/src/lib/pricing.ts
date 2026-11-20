@@ -23,8 +23,10 @@ export function hash(s: string) {
   return h >>> 0;
 }
 
-export const priceFor = (base: number, disc: number) => (disc > 0 ? Math.max(25, Math.round(base * (1 - disc / 100))) : base);
-export const domicileFee = (km: number) => 10 + Math.max(0, Math.ceil(km - 2)) * 5;
+export const priceFor = (base: number, disc: number) => {
+  const pct = disc > 0 ? Math.min(35, Math.max(15, disc)) : 0;
+  return Math.max(25, pct ? Math.round(base * (1 - pct / 100)) : base);
+};
 
 export function slotDiscount(salon: Salon, key: string, hour: number, rules: Rule[], now = new Date()) {
   const start = slotStart(key, hour);

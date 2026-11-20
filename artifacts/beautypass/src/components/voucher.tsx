@@ -36,13 +36,13 @@ export function Voucher({ b }: { b: Booking }) {
       <div className="space-y-2 p-5 text-sm text-ink">
         <div className="flex items-center gap-3"><Photo src={categoryPhoto(s.category)} alt={s.name} className="h-11 w-11 shrink-0 rounded-xl" /><p className="tight text-lg font-bold text-forest">{s.name}</p></div>
         <p className="flex items-center gap-2"><Clock className="h-4 w-4 text-teal" /><span className="capitalize">{fmtDate(b.date)}</span> · <span className="tnum">{pad(b.hour)}:00</span></p>
-        <p className="flex items-center gap-2"><MapPin className="h-4 w-4 text-teal" />{b.mode === 'domicilio' ? `A domicílio: ${b.address}` : `${s.address}, ${s.hood}`}</p>
+        <p className="flex items-center gap-2"><MapPin className="h-4 w-4 text-teal" />{s.address}, {s.hood} · São Paulo</p>
         <p className="flex items-center gap-2"><User className="h-4 w-4 text-teal" />{staff ? staff.name : 'Qualquer Profissional'}</p>
         <p className="text-xs text-muted-ink">{services.map((x) => x.name).join(' + ')}</p>
         {b.notes && <p className="flex items-start gap-2 rounded-xl bg-amber-bg p-2.5 text-xs"><StickyNote className="mt-0.5 h-3.5 w-3.5 text-gold" />{b.notes}</p>}
         <div className="flex items-end justify-between border-t border-line pt-3 tnum">
-          <span className="text-xs text-muted-ink">{lbl && b.disc > 0 ? `${lbl.title} -${b.disc}%` : 'Preço padrão'}{b.fee > 0 && ` · taxa ${brl(b.fee)}`}</span>
-          <span>{b.disc > 0 && <s className="mr-1 text-xs text-strike">{brl(b.base)}</s>}<b className="text-forest">{brl(b.final + b.fee)}</b></span>
+          <span className="text-xs text-muted-ink">{lbl && b.disc > 0 ? `${lbl.title} -${b.disc}%` : 'Preço padrão'}</span>
+          <span>{b.disc > 0 && <s className="mr-1 text-xs text-strike">{brl(b.base)}</s>}<b className="text-forest">{brl(b.final)}</b></span>
         </div>
         {b.cancelReason && <p className="text-xs text-coral">Motivo: {b.cancelReason} · multa {brl(b.cancelFee ?? 0)} · reembolso {brl(b.refund ?? 0)}</p>}
       </div>
