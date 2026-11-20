@@ -42,10 +42,10 @@ export function PriceHelp({ open, onOpenChange }: { open: boolean; onOpenChange:
           )}
         </AnimatePresence>
         <div className="mt-2 flex items-center justify-between">
-          <button aria-label="Anterior" disabled={i === 0} onClick={() => setI(0)} className="rounded-full bg-tint p-2 text-forest disabled:opacity-30"><ChevronLeft className="h-4 w-4" /></button>
-          <div className="flex gap-1.5" role="tablist">{[0, 1].map((k) => <button key={k} role="tab" aria-selected={i === k} aria-label={`Página ${k + 1}`} onClick={() => setI(k)} className={cn('h-2 rounded-full transition-all', i === k ? 'w-6 bg-forest' : 'w-2 bg-line')} />)}</div>
-          {i === 0 ? <button aria-label="Próxima" data-testid="button-explain-next" onClick={() => setI(1)} className="rounded-full bg-tint p-2 text-forest"><ChevronRight className="h-4 w-4" /></button>
-            : <button data-testid="button-explain-close" onClick={() => onOpenChange(false)} className="rounded-full bg-forest px-4 py-2 text-xs font-semibold text-white">Entendi</button>}
+          <button aria-label="Anterior" disabled={i === 0} onClick={() => setI(0)} className="flex h-11 w-11 items-center justify-center rounded-full bg-tint text-forest disabled:opacity-30"><ChevronLeft className="h-4 w-4" /></button>
+          <div className="flex gap-2" role="tablist">{[0, 1].map((k) => <button key={k} role="tab" aria-selected={i === k} aria-label={`Página ${k + 1}`} data-testid={`button-explain-dot-${k}`} onClick={() => setI(k)} className="flex h-11 w-11 items-center justify-center rounded-full"><span className={cn('h-2 rounded-full transition-all', i === k ? 'w-6 bg-forest' : 'w-2 bg-mint-2')} /></button>)}</div>
+          {i === 0 ? <button aria-label="Próxima" data-testid="button-explain-next" onClick={() => setI(1)} className="flex h-11 w-11 items-center justify-center rounded-full bg-tint text-forest"><ChevronRight className="h-4 w-4" /></button>
+            : <button data-testid="button-explain-close" onClick={() => onOpenChange(false)} className="h-11 rounded-full bg-forest px-5 text-xs font-semibold text-white">Entendi</button>}
         </div>
       </DialogContent>
     </Dialog>

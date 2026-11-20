@@ -9,6 +9,16 @@ export const PERIODS = { Manhã: [9, 10, 11], Tarde: [12, 13, 14, 15, 16, 17], N
 export type Period = keyof typeof PERIODS;
 
 export const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+/** Rule of 100 changes the framing, never the frozen service price or discount policy. */
+export function discountFraming(base: number, final: number, disc: number) {
+  if (disc <= 0 || !Number.isFinite(base) || !Number.isFinite(final) || !Number.isFinite(disc)) return null;
+  const savings = +Math.max(0, base - final).toFixed(2);
+  if (!savings) return null;
+  const percent = disc;
+  const percentage = `-${percent}%`;
+  const amount = `Economize ${brl(savings)}`;
+  return { primary: base < 100 ? percentage : amount, secondary: base < 100 ? amount : percentage, savings, percent };
+}
 export const pad = (n: number) => String(n).padStart(2, '0');
 export const dateKey = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 export const parseKey = (k: string) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };

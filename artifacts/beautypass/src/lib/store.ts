@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { getSalon } from './data';
 import { addDays, dateKey, hash, type DiscKind, type Rule, slotStart } from './pricing';
 import type { ExperienceReview } from './experience';
+import { REVIEW_MAX_LENGTH } from './experience';
 import { migrateAppointment, migrateState, savedOnBookings } from './state-migration';
 export type { ExperienceReview } from './experience';
 
@@ -166,7 +167,7 @@ export function checkIn(code: string, salonId: string): { ok: boolean; msg: stri
   return { ok: true, msg: `Check-in confirmado. ${c} concluída e enviada para Receita D+1.` };
 }
 
-export function submitReview(code: string, rating: number, comment: string): { ok: boolean; error?: string } {
+export function submitReview(code: string, rating: number, comment = ''): { ok: boolean; error?: string } {
   const booking = state.bookings.find((item) => item.code === code);
   if (!booking || booking.status !== 'COMPLETED') {
     return { ok: false, error: 'A avaliação fica disponível após o check-in e a conclusão do atendimento.' };
@@ -177,10 +178,10 @@ export function submitReview(code: string, rating: number, comment: string): { o
   if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
     return { ok: false, error: 'Escolha uma nota de 1 a 5 estrelas.' };
   }
-  const text = comment.trim();
-  if (!text || text.length > 1000) {
-    return { ok: false, error: 'Conte como foi sua experiência em até 1.000 caracteres.' };
+  if (comment.length > REVIEW_MAX_LENGTH) {
+    return { ok: false, error: `Se quiser comentar, use até ${REVIEW_MAX_LENGTH} caracteres. Sua nota pode ser enviada sem comentário.` };
   }
+  const text = comment.trim();
   const review: ExperienceReview = {
     code, salonId: booking.salonId, author: state.user.name, rating, text,
     when: 'agora · reserva verificada', createdAt: Date.now(),

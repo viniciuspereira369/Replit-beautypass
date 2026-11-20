@@ -66,7 +66,7 @@ export function StaffStrip({ salon, staff, setStaff }: { salon: Salon; staff: st
             <Portrait src={specialistPhoto(p.name, i)} name={p.name} className={cn('h-14 w-14', p.featured && 'ring-gold')} />
             <b className="mt-1.5 block w-full truncate text-ink">{p.name}</b><span className="w-full truncate text-[10px] text-muted-ink">{p.role}</span>
             <span className="mt-0.5 flex items-center gap-0.5 text-[10px] font-bold text-ink tnum"><Star className="h-2.5 w-2.5 fill-gold text-gold" />{p.rating.toFixed(1).replace('.', ',')}</span>
-            {p.featured && <span className="absolute -top-2 flex items-center gap-0.5 rounded-full bg-gold px-1.5 py-0.5 text-[9px] font-bold text-white"><Award className="h-2.5 w-2.5" />Destaque da Casa</span>}
+            {p.featured && <span className="absolute -top-2 flex items-center gap-0.5 rounded-full bg-[#FEF3C7] px-1.5 py-0.5 text-[9px] font-bold text-[#78350F] ring-1 ring-[#78350F]/20"><Award className="h-2.5 w-2.5" />Destaque da Casa</span>}
           </button>
         ))}
       </div>
@@ -90,7 +90,7 @@ export function Reviews({ reviews, rating }: { reviews: Review[]; rating: number
       <div className="grid gap-2 @2xl:grid-cols-3">{reviews.map((r, i) => (
         <div key={`${r.author}-${i}`} className="rounded-[20px] border border-line bg-white p-3" data-testid={`card-review-${i}`}>
           <p className="flex items-center justify-between text-xs font-bold text-ink"><span className="flex items-center gap-1">{r.author}<BadgeCheck className="h-3.5 w-3.5 text-teal" /></span><span className="flex items-center gap-0.5 tnum">{Array.from({ length: 5 }).map((_, k) => <Star key={k} className={cn('h-3 w-3', k < Math.round(r.rating) ? 'fill-gold text-gold' : 'text-line')} />)}</span></p>
-          <p className="mt-1 text-xs text-ink">{r.text}</p><p className="mt-1 text-[10px] text-muted-ink">{r.when}</p>
+          {r.text ? <p className="mt-1 text-xs text-ink">{r.text}</p> : <p className="mt-1 text-[11px] italic text-muted-ink">Avaliação só com nota</p>}<p className="mt-1 text-[10px] text-muted-ink">{r.when}</p>
         </div>))}</div>
     </section>
   );

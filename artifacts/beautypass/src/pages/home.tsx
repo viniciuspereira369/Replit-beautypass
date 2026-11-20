@@ -59,10 +59,10 @@ export default function HomePage() {
         <div className="mt-4 flex items-center gap-2 rounded-full border border-line bg-white py-1.5 pl-4 pr-1.5 shadow-[0_10px_30px_-22px_rgba(18,62,53,.5)] focus-within:border-teal focus-within:ring-2 focus-within:ring-mint/40">
           <Search className="h-4 w-4 shrink-0 text-muted-ink" /><label htmlFor="home-search" className="sr-only">Buscar procedimento</label>
           <input id="home-search" data-testid="input-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Qual procedimento você quer hoje?" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-ink" />
-          {q && <button aria-label="Limpar busca" onClick={() => setQ('')} className="p-1"><X className="h-4 w-4 text-muted-ink" /></button>}
+          {q && <button aria-label="Limpar busca" onClick={() => setQ('')} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full hover:bg-tint"><X className="h-4 w-4 text-muted-ink" /></button>}
           <motion.button whileTap={{ scale: 0.88 }} data-testid="button-toggle-hub" aria-expanded={hub} aria-controls="savings-hub" aria-label="Buscando economia?" onClick={() => setHub(!hub)}
-            className={cn('relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition', hub ? 'bg-forest text-mint' : 'bg-economy-bg text-economy')}>
-            <Ticket className="h-[18px] w-[18px]" />{(minD > 0 || superOnly || todayOnly) && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-coral ring-2 ring-white" />}
+            className={cn('relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition', hub ? 'bg-forest text-mint' : 'bg-economy-bg text-economy')}>
+            <Ticket className="h-[18px] w-[18px]" />{(minD > 0 || superOnly || todayOnly) && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-economy ring-2 ring-white" />}
           </motion.button>
         </div>
         <AnimatePresence initial={false}>{hub && <SavingsHub minD={minD} setMinD={setMinD} active={active} onShortcut={onShortcut} />}</AnimatePresence>
@@ -76,7 +76,7 @@ export default function HomePage() {
             <p className="mt-0.5 text-[11px] leading-snug text-ink">Sem assinatura ou mensalidade — reserve grátis e pague apenas pelo agendamento</p>
             <button data-testid="button-explore-deals" onClick={() => setHub(true)} className="mt-2 rounded-full bg-forest px-3 py-1 text-[11px] font-semibold text-white transition active:scale-95">Explorar ofertas</button>
           </div>
-          <button data-testid="button-dismiss-deals" aria-label="Dispensar aviso de tarifas" onClick={dismissDeals} className="rounded-full p-1 text-muted-ink hover:bg-white"><X className="h-4 w-4" /></button>
+          <button data-testid="button-dismiss-deals" aria-label="Dispensar aviso de tarifas" onClick={dismissDeals} className="-mr-2 -mt-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-ink hover:bg-white"><X className="h-4 w-4" /></button>
         </section>
       )}
 

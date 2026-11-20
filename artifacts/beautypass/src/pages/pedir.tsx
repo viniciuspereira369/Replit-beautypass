@@ -3,12 +3,13 @@ import { useLocation } from 'wouter';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Star, Footprints, CalendarX, ArrowLeft, MapPin, Scissors, Sparkles, Hand, Flower2, Droplets, LayoutGrid, Map, Check, Clock } from 'lucide-react';
 import { SALONS } from '@/lib/data';
-import { brl, dateKey, kindLabel, pad } from '@/lib/pricing';
+import { brl, dateKey, pad } from '@/lib/pricing';
 import { startHold, useStore } from '@/lib/store';
 import { salonRating } from '@/lib/experience';
 import { categoryPhoto } from '@/lib/media';
 import { Empty } from '@/components/shell';
 import { Photo } from '@/components/art';
+import { DiscountFrame } from '@/components/discount-frame';
 import { RouteMap } from '@/components/route-map';
 import { RadarScan } from '@/components/radar-scan';
 import { fmtKm, fmtRating, liveDiscount } from '@/components/salon-card';
@@ -43,7 +44,7 @@ export default function PedirPage() {
   return (
     <div className="mx-auto max-w-3xl" ref={top}>
       <div className="relative px-5 pt-5 text-center">
-        {phase !== 'idle' && <button aria-label="Voltar" data-testid="button-pedir-back" onClick={() => setPhase('idle')} className="absolute left-4 top-5 rounded-full bg-white p-2 shadow-sm"><ArrowLeft className="h-4 w-4 text-ink" /></button>}
+        {phase !== 'idle' && <button aria-label="Voltar" data-testid="button-pedir-back" onClick={() => setPhase('idle')} className="absolute left-4 top-3 flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm"><ArrowLeft className="h-4 w-4 text-ink" /></button>}
         <p className="text-[11px] font-bold uppercase tracking-[.18em] text-teal">Etapa {phase === 'idle' ? 1 : phase === 'scan' ? 2 : 3} de 3</p>
         <h1 className="tight text-2xl font-bold text-forest">{phase === 'done' ? 'Encaixes encontrados' : 'Pedir Agora'}</h1>
         {phase === 'idle' && <p className="mt-1 text-sm text-muted-ink">Diga o que quer e quando. Encontramos a cadeira ociosa ideal.</p>}
@@ -80,21 +81,20 @@ export default function PedirPage() {
                 <RouteMap salons={res.map((r) => r.salon)} selected={m?.salon.id ?? null} onSelect={(id) => setPick(Math.max(0, res.findIndex((r) => r.salon.id === id)))} label={(s) => { const r = res.find((x) => x.salon.id === s.id); return r && r.disc ? `${s.hood} -${r.disc}%` : s.hood; }} viewBox="40 60 340 340" />
               </div>
               <div className="mt-3 space-y-2.5" role="radiogroup" aria-label="Encaixes">
-                {res.map((r, i) => { const on = i === pick; const lbl = kindLabel(r.kind); return (
+                {res.map((r, i) => { const on = i === pick; return (
                   <motion.button key={r.label} role="radio" aria-checked={on} whileTap={{ scale: 0.98 }} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0, transition: { delay: i * 0.08 } }}
                     onClick={() => setPick(i)} data-testid={`card-match-${i}`} className={cn('flex w-full items-center gap-3 rounded-[22px] border bg-white p-3 text-left transition', on ? 'border-forest ring-2 ring-mint/60' : 'border-line')}>
                     <Photo src={categoryPhoto(r.salon.category)} alt={r.salon.name} className="h-16 w-16 shrink-0 rounded-2xl" />
                     <span className="min-w-0 flex-1">
                       <span className="text-[10px] font-extrabold tracking-wider text-teal">{r.label}</span>
                       <span className="tight block truncate font-bold text-forest">{r.salon.name}</span>
-                      <span className="flex items-center gap-1.5 text-[11px] text-muted-ink tnum"><Star className="h-3 w-3 fill-gold text-gold" />{fmtRating(salonRating(r.salon, reviews))}<Footprints className="h-3 w-3" />{fmtKm(r.salon.distanceKm)} km<Clock className="h-3 w-3" />{r.date === dateKey(new Date()) ? 'Hoje' : 'Amanhã'} {pad(r.hour)}:00</span>
-                      {lbl && r.disc > 0 && <span className="block truncate text-[10px] font-semibold text-economy">{lbl.title} · {lbl.sub}</span>}
+                      <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-muted-ink tnum"><Star className="h-3 w-3 fill-gold text-gold" />{fmtRating(salonRating(r.salon, reviews))}<Footprints className="h-3 w-3" />{fmtKm(r.salon.distanceKm)} km<Clock className="h-3 w-3" />{r.date === dateKey(new Date()) ? 'Hoje' : 'Amanhã'} {pad(r.hour)}:00</span>
                     </span>
-                    <span className="text-right tnum">{r.disc > 0 && <s className="block text-[11px] text-strike">{brl(r.base)}</s>}<b className="text-forest">{brl(r.final)}</b>{r.disc > 0 && <span className="block text-[10px] font-bold text-coral">-{r.disc}%</span>}</span>
+                    <span className="flex shrink-0 flex-col items-end text-right tnum">{r.disc > 0 && <s className="block text-[11px] text-strike">{brl(r.base)}</s>}<b className="text-forest">{brl(r.final)}</b><DiscountFrame base={r.base} final={r.final} disc={r.disc} kind={r.kind} align="right" compact tid={`frame-match-${i}`} className="mt-0.5" /></span>
                   </motion.button>); })}
               </div>
               <p className="mt-2 flex items-center gap-1 text-[11px] text-muted-ink"><MapPin className="h-3 w-3" />Preço justo: nunca abaixo de R$ 30 ou 45% do valor base.</p>
-              <div className="sticky bottom-3 z-20 mt-4">
+              <div className="sticky bottom-3 z-20 mt-4" data-sticky-bar>
                 <motion.button whileTap={{ scale: 0.97 }} data-testid="button-match-book" onClick={book} className="flex w-full items-center justify-between rounded-full bg-forest px-5 py-3.5 text-sm font-bold text-white shadow-[0_16px_30px_-14px_rgba(18,62,53,.8)]">
                   <span>Confirmar Encaixe</span><span className="tnum">{m ? brl(m.final) : ''}</span>
                 </motion.button>

@@ -1,9 +1,14 @@
 import assert from 'node:assert/strict';
 import { beforeEach, test } from 'node:test';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { SALONS } from './data';
-import { addDays, dateKey, kindLabel, priceFor, slotDiscount } from './pricing';
-import { salonRating, salonReviews } from './experience';
-import { buildPartnerAnalytics } from './analytics';
+import { addDays, brl, dateKey, discountFraming, kindLabel, priceFor, slotDiscount } from './pricing';
+import { REVIEW_MAX_LENGTH, salonRating, salonReviews } from './experience';
+import { REVENUE_BASELINE, buildPartnerAnalytics } from './analytics';
+import { QR } from '../components/art';
+import { DiscountFrame } from '../components/discount-frame';
+import { QR_DARK, QR_WHITE, QR_VIEWBOX } from './qr-layout';
 
 const entries = new Map<string, string>();
 const storage = {
@@ -137,7 +142,9 @@ test('check-in creates a single payout and unlocks a single verified, persisted 
   assert.equal(store.getState().ledger.find((l) => l.code === 'BP-108420')?.net, 73.92);
   assert.deepEqual(store.getState().user, userBefore);
   assert.equal(store.submitReview('BP-108420', 0, 'teste').ok, false);
-  assert.equal(store.submitReview('BP-108420', 5, '').ok, false);
+  const tooLong = store.submitReview('BP-108420', 5, 'a'.repeat(281));
+  assert.equal(tooLong.ok, false);
+  assert.ok(tooLong.error?.includes('280'));
   assert.equal(store.submitReview('BP-108420', 5, 'Equipe maravilhosa e pontual.').ok, true);
   assert.equal(store.getState().bookings.find((b) => b.code === 'BP-108420')?.reviewed, true);
   assert.equal(salonReviews(salon, store.getState().reviews).length, 4);
@@ -145,6 +152,67 @@ test('check-in creates a single payout and unlocks a single verified, persisted 
   assert.equal(store.submitReview('BP-108420', 1, 'Duplicada').ok, false);
   assert.equal(JSON.parse(local.getItem('bp:state:v1')!).reviews.length, 1);
   assert.equal(store.submitReview('BP-884192', 5, 'Cancelada').ok, false);
+});
+
+test('verified ratings can be submitted without comments, including whitespace, and persist after reload', () => {
+  assert.equal(store.submitReview('BP-952130', 4).ok, true);
+  assert.equal(store.getState().reviews[0].text, '');
+  assert.equal(store.getState().reviews[0].rating, 4);
+  window.dispatchEvent(Object.assign(new Event('storage'), { key: 'bp:state:v1' }));
+  assert.equal(store.getState().reviews[0].text, '');
+  assert.equal(salonReviews(SALONS[4], store.getState().reviews).length, 4);
+  assert.equal(store.submitReview('BP-952130', 5, 'Duplicada').ok, false);
+  store.checkIn('BP-108420', SALONS[0].id);
+  assert.equal(store.submitReview('BP-108420', 5, '   ').ok, true);
+  assert.equal(store.getState().reviews[0].text, '');
+});
+
+test('review comments share exactly the input 280-character limit, without requiring any text', () => {
+  assert.equal(REVIEW_MAX_LENGTH, 280);
+  assert.equal(store.submitReview('BP-952130', 0, '').ok, false);
+  assert.equal(store.submitReview('BP-952130', 6, '').ok, false);
+  assert.equal(store.submitReview('BP-952130', 3.5, '').ok, false);
+  for (const text of ['a'.repeat(281), ' '.repeat(281)]) {
+    const result = store.submitReview('BP-952130', 4, text);
+    assert.equal(result.ok, false);
+    assert.ok(result.error?.includes('280'));
+    assert.equal(store.getState().reviews.length, 0);
+  }
+  assert.equal(store.submitReview('BP-952130', 4, 'a'.repeat(280)).ok, true);
+  assert.equal(store.getState().reviews[0].text.length, 280);
+});
+
+test('Rule of 100 leads with percentages below R$100 and actual BRL savings at or above the threshold', () => {
+  const low = discountFraming(85, 60, 30)!;
+  assert.deepEqual(low, { primary: '-30%', secondary: `Economize ${brl(25)}`, savings: 25, percent: 30 });
+  assert.equal(discountFraming(99, 64, 35)?.primary, '-35%');
+  assert.equal(discountFraming(100, 65, 35)?.primary, `Economize ${brl(35)}`);
+  assert.equal(discountFraming(120, 78, 35)?.primary, `Economize ${brl(42)}`);
+  assert.equal(discountFraming(120, 78, 35)?.secondary, '-35%');
+  assert.equal(discountFraming(210, 137, 35)?.savings, 73);
+  assert.equal(discountFraming(100, 100, 0), null);
+  assert.equal(discountFraming(100, 100, 25), null);
+  const frame = renderToStaticMarkup(createElement(DiscountFrame, { base: 120, final: 78, disc: 35, kind: 'economico', tid: 'test-frame' }));
+  assert.ok(frame.indexOf('Economize') < frame.indexOf('-35%'));
+  assert.ok(frame.includes('Horário Econômico'));
+  assert.equal(renderToStaticMarkup(createElement(DiscountFrame, { base: 120, final: 120, disc: 0, kind: null })), '');
+});
+
+test('demo QR uses a four-module white quiet zone and deep-forest modules, with no Pix medallion', () => {
+  const pix = renderToStaticMarkup(createElement(QR, { value: 'PIX-SIMULADO', medallion: false }));
+  const voucher = renderToStaticMarkup(createElement(QR, { value: 'BP-108420', medallion: true }));
+  assert.equal(QR_VIEWBOX, '-4 -4 33 33');
+  for (const markup of [pix, voucher]) {
+    assert.ok(markup.includes('data-qr-quiet-zone="4"'));
+    assert.ok(markup.includes(`viewBox="${QR_VIEWBOX}"`));
+    const colors = [...markup.matchAll(/fill="(#[A-Fa-f0-9]{6})"/g)].map((m) => m[1]);
+    assert.ok(colors.length > 10);
+    assert.ok(colors.every((c) => c === QR_DARK || c === QR_WHITE));
+    assert.ok(markup.includes('x="-4" y="-4" width="33" height="33"'));
+  }
+  assert.equal(pix.includes('data-testid="qr-medallion"'), false);
+  assert.ok(voucher.includes('data-testid="qr-medallion"'));
+  assert.equal(pix, renderToStaticMarkup(createElement(QR, { value: 'PIX-SIMULADO', medallion: false })));
 });
 
 test('B2B charts react to rules and payouts with bounded occupancy percentages', () => {
@@ -160,6 +228,29 @@ test('B2B charts react to rules and payouts with bounded occupancy percentages',
   assert.equal(buildPartnerAnalytics(store.getState(), salon.id, now).completedNet, 73.92);
 });
 
+test('B2B revenue is three sorted, comparable BRL bars with exact zero baseline and no double-counted projection', () => {
+  const now = new Date(); now.setHours(8, 0, 0, 0);
+  store.checkIn('BP-108420', SALONS[0].id);
+  const a = buildPartnerAnalytics(store.getState(), SALONS[0].id, now);
+  assert.equal(REVENUE_BASELINE, 0);
+  assert.equal(a.revenue.length, 3);
+  assert.equal(a.revenue.find((r) => r.id === 'empty')?.value, 0);
+  assert.equal(a.revenue.find((r) => r.id === 'confirmed')?.value, 73.92);
+  assert.equal(a.revenue.find((r) => r.id === 'projected')?.value, a.activeProjectedNet);
+  assert.equal(a.projectedNet, +(a.activeProjectedNet + a.completedNet).toFixed(2));
+  assert.ok(a.revenue.every((r, i, rows) => Number.isFinite(r.value) && r.value >= 0 && (i === 0 || rows[i - 1].value >= r.value)));
+  assert.deepEqual(new Set(a.revenue.map((r) => r.name)), new Set(['Projeção de horários ativos', 'Repasse confirmado D+1', 'Cadeira vazia']));
+  assert.ok(a.occupancyLiftPp > 0 && a.occupancyLiftPp <= 50);
+  assert.ok(a.occupancy.every((h) => h.beautyPass >= h.baseline));
+  const evening = new Date(); evening.setHours(23, 59, 0, 0);
+  const noFutureLift = buildPartnerAnalytics(store.getState(), SALONS[0].id, evening);
+  assert.equal(noFutureLift.occupancyLiftPp, 0);
+  assert.equal(noFutureLift.activeProjectedNet, 0);
+  assert.ok(noFutureLift.baselineOccupancy >= 0 && noFutureLift.baselineOccupancy <= 100);
+  const empty = buildPartnerAnalytics(store.getState(), 'unknown-salon', now);
+  assert.equal(empty.revenue.length, 3);
+  assert.ok(empty.revenue.every((r) => r.value === 0));
+});
 test('legacy demos discard removed products and travel data, map former payments to Pix and preserve vouchers', () => {
   store.startHold({ ...store.getState().bookings[0], date: dateKey(addDays(new Date(), 2)) });
   const current = store.getState();

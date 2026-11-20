@@ -30,7 +30,7 @@ export function Voucher({ b }: { b: Booking }) {
       </div>
       <div className="relative flex flex-col items-center gap-2 border-b-2 border-dashed border-line p-5">
         <span className="absolute -bottom-3 -left-3 h-6 w-6 rounded-full bg-porcelain" /><span className="absolute -bottom-3 -right-3 h-6 w-6 rounded-full bg-porcelain" />
-        <div className="rounded-3xl bg-gradient-to-br from-tint to-economy-bg p-3"><QR value={b.code} size={150} /></div>
+        <div className="rounded-3xl bg-gradient-to-br from-tint to-economy-bg p-3"><QR value={b.code} size={150} medallion /></div>
         <span className={`rounded-full px-3 py-1 text-[11px] font-bold ${STATUS_PT[b.status].c}`}>{STATUS_PT[b.status].t}</span>
       </div>
       <div className="space-y-2 p-5 text-sm text-ink">

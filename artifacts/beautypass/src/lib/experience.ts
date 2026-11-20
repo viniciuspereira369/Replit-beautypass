@@ -1,5 +1,7 @@
 import type { Review, Salon } from './data';
 
+export const REVIEW_MAX_LENGTH = 280;
+
 export type ExperienceReview = Review & {
   code: string;
   salonId: string;

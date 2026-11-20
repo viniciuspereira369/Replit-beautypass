@@ -3,12 +3,13 @@ import { useLocation, useParams } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Star, MapPin, HelpCircle, Clock, Footprints, Sparkles, ChevronRight } from 'lucide-react';
 import { getSalon } from '@/lib/data';
-import { addDays, brl, dateKey, kindLabel, pad, PERIODS, type Period, priceFor, slotDiscount, slotState } from '@/lib/pricing';
+import { addDays, brl, dateKey, discountFraming, kindLabel, pad, PERIODS, type Period, priceFor, slotDiscount, slotState } from '@/lib/pricing';
 import { isTaken, startHold, useStore } from '@/lib/store';
 import { salonRating, salonReviews } from '@/lib/experience';
 import { galleryFor, specialistPhoto } from '@/lib/media';
 import { Photo, Portrait } from '@/components/art';
 import { FavButton, FriendStack, LiveProof, fmtRating, liveDiscount, walkMin } from '@/components/salon-card';
+import { DiscountFrame } from '@/components/discount-frame';
 import { RadialClock } from '@/components/radial-clock';
 import { PriceHelp } from '@/components/price-help';
 import { Gallery, GuaranteeTiles, Reviews, ServiceCards, StaffStrip, galleryCrop } from '@/components/salon-parts';
@@ -58,7 +59,7 @@ export default function SalonPage() {
     startHold({ salonId: salon.id, serviceIds: svc, staffId: staff, date: key, hour: sel.h, base, final, disc: sel.disc, kind: sel.kind });
     navigate('/checkout');
   };
-  const darkBtn = 'flex h-9 w-9 items-center justify-center rounded-full bg-[#0C2D26]/45 text-white backdrop-blur-md transition active:scale-90';
+  const darkBtn = 'flex h-11 w-11 items-center justify-center rounded-full bg-[#0C2D26]/45 text-white backdrop-blur-md transition active:scale-90';
 
   return (
     <div className="mx-auto max-w-3xl pb-6">
@@ -130,11 +131,11 @@ export default function SalonPage() {
                 <div className="flex items-end justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-[11px] text-muted-ink">{sel ? `${pad(sel.h)}:00 · ${chosen.map((c) => c.name).join(' + ')}` : 'Escolha um horário'}</p>
-                    {lbl && sel && sel.disc > 0 && <><p className="text-sm font-bold text-economy">{lbl.title}</p><p className="text-[11px] text-muted-ink">{lbl.sub}</p></>}
-                    {sel && blocked && <p className="text-xs font-semibold text-coral">Horário indisponível</p>}
+                    {lbl && sel && sel.disc > 0 && <p className="text-[11px] text-muted-ink">{lbl.sub}</p>}
+                    {sel && blocked && <p className="text-xs font-semibold text-muted-ink">Horário indisponível</p>}
                   </div>
                   <div className="text-right tnum">
-                    {sel && !blocked && sel.disc > 0 && <span className="mb-0.5 inline-block rounded-full bg-coral px-2 py-0.5 text-[10px] font-bold text-white">-{sel.disc}%</span>}
+                    {sel && !blocked && discountFraming(base, final, sel.disc) && <DiscountFrame base={base} final={final} disc={sel.disc} kind={sel.kind} align="right" tid="frame-live-price" className="mb-1" />}
                     <p>{sel && !blocked && sel.disc > 0 && <s className="mr-1.5 text-xs text-strike">{brl(base)}</s>}<b className="text-xl text-forest" data-testid="text-total">{brl(final)}</b></p>
                   </div>
                 </div>
@@ -147,7 +148,7 @@ export default function SalonPage() {
         </div>
       </div>
 
-      <div className="sticky bottom-0 z-20 mt-6 rounded-t-[24px] border-t border-line bg-white/95 px-4 pb-7 pt-3 backdrop-blur" data-testid="bar-checkout">
+      <div className="sticky bottom-0 z-20 mt-6 rounded-t-[24px] border-t border-line bg-white/95 px-4 pb-7 pt-3 backdrop-blur" data-testid="bar-checkout" data-sticky-bar>
         <motion.button whileTap={{ scale: 0.97 }} data-testid="button-reserve" disabled={blocked || !chosen.length} onClick={reserve}
           className="flex w-full items-center justify-between rounded-full bg-forest px-5 py-3.5 text-sm font-bold text-white transition hover:bg-forest-hover disabled:bg-strike disabled:opacity-70">
           <span className="flex items-center gap-1">Avançar para Pagamento<ChevronRight className="h-4 w-4" /></span><span className="tnum">{chosen.length && !blocked ? brl(final) : sel ? 'indisponível' : 'escolha o horário'}</span>

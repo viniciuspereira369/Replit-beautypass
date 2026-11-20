@@ -23,7 +23,7 @@ function CancelModal({ b, onClose }: { b: Booking; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-forest/40 p-3 backdrop-blur-sm sm:items-center" role="dialog" aria-modal="true" aria-labelledby="cancel-title" onKeyDown={(e) => e.key === 'Escape' && onClose()}>
       <div className="rise max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-y-auto rounded-[28px] bg-white p-5">
-        <div className="flex items-center justify-between"><h2 id="cancel-title" className="tight text-xl font-bold text-forest">Cancelar <span className="font-mono">{b.code}</span></h2><button aria-label="Fechar" onClick={onClose} className="rounded-full bg-tint p-1.5"><X className="h-4 w-4" /></button></div>
+        <div className="flex items-center justify-between"><h2 id="cancel-title" className="tight text-xl font-bold text-forest">Cancelar <span className="font-mono">{b.code}</span></h2><button aria-label="Fechar" onClick={onClose} className="flex h-11 w-11 items-center justify-center rounded-full bg-tint"><X className="h-4 w-4" /></button></div>
         <div className={cn('mt-3 rounded-2xl p-3 text-xs tnum', p.free ? 'bg-economy-bg text-forest' : 'bg-coral-bg text-coral')} data-testid="text-cancel-policy">
           {p.free ? <>Faltam mais de 24h. Cancelamento gratuito: reembolso integral de {brl(p.refund)}.</> : <>Faltam menos de 24h. Multa de 30% ({brl(p.fee)}). Reembolso de {brl(p.refund)}.</>}
         </div>

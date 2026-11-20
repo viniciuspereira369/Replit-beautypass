@@ -57,11 +57,11 @@ export default function MapPage() {
               <div className="flex items-start gap-3">
                 <Photo src={categoryPhoto(salon.category)} alt={salon.name} className="h-14 w-14 shrink-0 rounded-2xl" />
                 <div className="min-w-0 flex-1"><p className="tight truncate text-lg font-bold text-forest">{salon.name}</p><p className="truncate text-xs text-muted-ink">{salon.address} · {salon.hood}</p></div>
-                <button aria-label="Fechar" data-testid="button-map-close" onClick={() => setSel(null)} className="rounded-full bg-tint p-2 text-ink"><X className="h-4 w-4" /></button>
+                <button aria-label="Fechar" data-testid="button-map-close" onClick={() => setSel(null)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-tint text-ink"><X className="h-4 w-4" /></button>
               </div>
               <div className="mt-3 grid grid-cols-3 divide-x divide-line rounded-2xl border border-line py-2.5 text-center tnum">
                 <div><p className="flex items-center justify-center gap-1 text-base font-bold text-forest"><Star className="h-3.5 w-3.5 fill-gold text-gold" />{fmtRating(salonRating(salon, reviews))}</p><p className="text-[10px] text-muted-ink">avaliação</p></div>
-                <div><p className="text-base font-bold text-coral">-{liveDiscount(salon, st.rules)}%</p><p className="text-[10px] text-muted-ink">economia máx.</p></div>
+                <div><p className="text-base font-bold text-[#065F4E]">-{liveDiscount(salon, st.rules)}%</p><p className="text-[10px] text-muted-ink">economia máx.</p></div>
                 <div><p className="text-base font-bold text-forest">{walkMin(salon.distanceKm)} min</p><p className="text-[10px] text-muted-ink">a pé · {fmtKm(salon.distanceKm)} km</p></div>
               </div>
               <p className="mt-2 text-center text-xs text-muted-ink tnum">{salon.services[0].name} · {liveDiscount(salon, st.rules) > 0 && <s className="text-strike">{brl(salon.services[0].base)}</s>} <b className="text-forest">{brl(priceFor(salon.services[0].base, liveDiscount(salon, st.rules)))}</b></p>
@@ -74,7 +74,7 @@ export default function MapPage() {
               <div className="no-scrollbar -mx-4 mt-2 flex snap-x gap-3 overflow-x-auto px-4 pb-1">
                 {[...list].sort((a, b) => a.distanceKm - b.distanceKm).map((s) => (
                   <button key={s.id} data-testid={`card-map-rest-${s.id}`} onClick={() => setSel(s.id)} className="w-[168px] shrink-0 snap-start overflow-hidden rounded-[20px] border border-line bg-white text-left transition active:scale-[.97]">
-                    <div className="relative"><Photo src={categoryPhoto(s.category)} alt={s.name} className="h-[92px] w-full" />{liveDiscount(s, st.rules) > 0 && <span className="absolute left-2 top-2 rounded-full bg-coral px-2 py-0.5 text-[10px] font-bold text-white tnum">-{liveDiscount(s, st.rules)}%</span>}</div>
+                    <div className="relative"><Photo src={categoryPhoto(s.category)} alt={s.name} className="h-[92px] w-full" />{liveDiscount(s, st.rules) > 0 && <span className="absolute left-2 top-2 rounded-full border border-economy/40 bg-economy-bg px-2 py-0.5 text-[10px] font-bold text-[#065F4E] tnum">-{liveDiscount(s, st.rules)}%</span>}</div>
                     <div className="p-2.5"><p className="tight truncate text-[13px] font-bold text-forest">{s.name}</p><p className="flex items-center gap-1.5 text-[11px] text-muted-ink tnum"><Star className="h-3 w-3 fill-gold text-gold" />{fmtRating(salonRating(s, reviews))}<Footprints className="h-3 w-3" />{walkMin(s.distanceKm)} min</p></div>
                   </button>
                 ))}

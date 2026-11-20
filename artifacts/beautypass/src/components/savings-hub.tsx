@@ -3,7 +3,7 @@ import { Zap, Navigation, Crown, Heart, Map } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type Shortcut = 'encaixe' | 'perto' | 'super' | 'favoritos' | 'mapa';
-const COUPONS = [{ d: 15, t: 'Leve' }, { d: 25, t: 'Econômico' }, { d: 30, t: 'Premium' }, { d: 35, t: 'Hoje', hot: true }];
+const COUPONS = [{ d: 15, t: 'Leve' }, { d: 25, t: 'Econômico' }, { d: 30, t: 'Premium' }, { d: 35, t: 'Hoje' }];
 const SHORTS: { id: Shortcut; label: string; icon: typeof Zap; dark?: boolean }[] = [
   { id: 'encaixe', label: 'Encaixe Hoje', icon: Zap }, { id: 'perto', label: 'Perto de mim', icon: Navigation },
   { id: 'super', label: 'Super Salões 4.8+', icon: Crown, dark: true }, { id: 'favoritos', label: 'Favoritos', icon: Heart },
@@ -20,7 +20,7 @@ export function SavingsHub({ minD, setMinD, active, onShortcut }: { minD: number
           {COUPONS.map((c) => { const on = minD === c.d; return (
             <motion.button key={c.d} whileTap={{ scale: 0.92 }} data-testid={`pill-discount-${c.d}`} aria-pressed={on} onClick={() => setMinD(on ? 0 : c.d)}
               className={cn('notch flex flex-col items-center rounded-xl border-y-2 border-dashed py-2.5 transition',
-                c.hot ? (on ? 'border-coral bg-coral text-white' : 'border-coral/30 bg-coral-bg text-coral') : on ? 'border-mint bg-forest text-white' : 'border-mint-3 bg-economy-bg text-economy')}>
+                on ? 'border-mint bg-forest text-white' : 'border-mint-3 bg-economy-bg text-economy')}>
               <b className="tnum text-lg leading-none tight">-{c.d}%</b><span className="mt-0.5 text-[9.5px] font-semibold uppercase tracking-wide opacity-80">{c.t}</span>
             </motion.button>); })}
         </div>

@@ -111,10 +111,24 @@ const NAV = [
 export function ClientShell({ children, framed }: { children: ReactNode; framed: boolean }) {
   const [loc] = useLocation(); const ref = useRef<HTMLElement>(null);
   useEffect(() => { ref.current?.scrollTo({ top: 0 }); }, [loc]);
+  // Keep keyboard-focused controls fully visible above the sticky action bar (nav sits outside the scroller).
+  useEffect(() => {
+    const main = ref.current; if (!main) return;
+    const onFocus = (e: FocusEvent) => {
+      const el = e.target as HTMLElement | null; if (!el || !main.contains(el)) return;
+      const bar = main.querySelector<HTMLElement>('[data-sticky-bar]');
+      if (bar && bar.contains(el)) return;
+      const r = el.getBoundingClientRect(); const m = main.getBoundingClientRect();
+      const limit = bar ? Math.min(m.bottom - 24, bar.getBoundingClientRect().top - 8) : m.bottom - 24;
+      if (r.bottom > limit) main.scrollBy({ top: r.bottom - limit });
+      else if (r.top < m.top + 8) main.scrollBy({ top: r.top - m.top - 8 });
+    };
+    main.addEventListener('focusin', onFocus); return () => main.removeEventListener('focusin', onFocus);
+  }, []);
   return (
     <div className={cn(framed && 'ambient md:flex md:min-h-[calc(100dvh-52px)] md:items-center md:justify-center md:py-2.5')}>
       <div className={cn('relative flex flex-col overflow-hidden bg-porcelain', framed ? 'h-[calc(100dvh-52px)] md:h-[min(860px,calc(100dvh-72px))] md:w-[412px] md:rounded-[48px] md:border-[9px] md:border-[#0C2D26] md:shadow-[0_40px_90px_-30px_rgba(18,62,53,.55),0_0_0_1px_rgba(18,62,53,.15)]' : 'h-[calc(100dvh-52px)] w-full')}>
-        <main ref={ref} className="@container flex-1 overflow-y-auto overflow-x-hidden mb-[74px] pb-8">{children}</main>
+        <main ref={ref} className="client-scroller @container flex-1 overflow-y-auto overflow-x-hidden mb-[74px] pb-8">{children}</main>
         <nav className="absolute inset-x-0 bottom-0 z-30 h-[74px] border-t border-line bg-white" aria-label="Navegação principal">
           <div className="mx-auto flex h-full max-w-md items-stretch justify-between px-2">
             {NAV.map(({ href, label, icon: Icon, big, tid }) => {

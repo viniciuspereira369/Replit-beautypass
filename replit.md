@@ -6,6 +6,7 @@ Marketplace gratuito de beleza em São Paulo, com atendimento exclusivamente pre
 
 - Managed workflow `artifacts/beautypass: web` runs the client application.
 - `pnpm --filter @workspace/beautypass run typecheck` — check the BeautyPass application.
+- `pnpm --filter @workspace/beautypass test` — unit and server-rendered UI regression tests, using the existing Vite compiler.
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
@@ -33,7 +34,11 @@ Marketplace gratuito de beleza em São Paulo, com atendimento exclusivamente pre
 - Migrate existing local demo records instead of clearing them. Retain service-only price snapshots, vouchers, notes, favorites, rules and reviews; discard obsolete product fields. Why: changing the marketplace model must not erase users' demo bookings.
 - Accumulated savings equal the BRL sum of base minus final prices on confirmed and completed bookings; cancelled bookings do not count. Why: the passport must show demonstrable savings, not a balance or reward currency.
 - Verified reviews become available only for completed bookings and count once per voucher. Seed salon ratings retain their original weighting when new reviews are added. Why: the seed ratings must stay intact until a real demo review is submitted.
+- Review stars are required; the comment is optional and limited to 280 input characters. Why: the user approved reducing review effort without losing verified ratings.
 - Partner charts distinguish illustrative dynamic-pricing projections from completed-voucher payouts. Why: a local hackathon demo cannot claim to measure real conversion uplift.
+- Revenue comparisons separate projected future recovery, confirmed D+1 payout and the zero-value empty chair; never sum projected and confirmed values into a single comparison bar. Why: the user approved clearer, non-double-counted financial storytelling.
+- Frame discounts below R$ 100 primarily as percentages and at/above R$ 100 primarily as actual BRL savings. Why: the user approved Rule of 100 framing while preserving transparent percentages and frozen prices.
+- Use #78350F on #FEF3C7 for the lead-specialist badge. Why: the suggested #92400E pair measures only 6.37:1; the slightly darker text meets the requested contrast above 7:1.
 
 ## Product
 

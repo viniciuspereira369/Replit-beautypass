@@ -1,7 +1,7 @@
 kind = "web"
 previewPath = "/"
 title = "BeautyPass"
-description = "Marketplace de beleza e clube de assinatura em São Paulo, com reservas, BeautyCredits e painel B2B. Demo inteiramente client-side com dados no localStorage."
+description = "Marketplace gratuito de beleza em São Paulo, com atendimento presencial nos salões parceiros, descontos em horários econômicos e pagamento por agendamento em reais via Pix ou cartão simulado. Reservas, avaliações verificadas e painel B2B sincronizados localmente no navegador."
 version = "1.0.0"
 id = "artifacts/beautypass"
 router = "path"

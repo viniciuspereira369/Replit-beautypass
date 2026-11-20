@@ -16,7 +16,7 @@ export function IslandToaster() {
           <motion.div key={top.id} data-testid="toast-island"
             initial={reduce ? { opacity: 0 } : { opacity: 0, y: -24, scale: 0.6 }} animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: -18, scale: 0.7 }} transition={{ type: 'spring', stiffness: 420, damping: 30 }}
-            className="island pointer-events-auto flex min-w-[240px] max-w-[380px] items-center gap-3 rounded-full py-2.5 pl-3 pr-2 text-white shadow-[0_18px_40px_-14px_rgba(12,45,38,.6)]">
+            className="island pointer-events-auto flex min-w-[240px] max-w-[380px] items-center gap-3 rounded-full py-1 pl-3 pr-1 text-white shadow-[0_18px_40px_-14px_rgba(12,45,38,.6)]">
             <span className={top.variant === 'destructive' ? 'text-[#FDA4AF]' : 'text-mint'}>
               {top.variant === 'destructive' ? <AlertCircle className="h-5 w-5" /> : <CheckCircle2 className="h-5 w-5" />}
             </span>
@@ -24,7 +24,7 @@ export function IslandToaster() {
               {top.title && <span className="block truncate text-[13px] font-semibold tight">{top.title}</span>}
               {top.description && <span className="block truncate text-[11px] text-white/70">{top.description}</span>}
             </span>
-            <button aria-label="Fechar aviso" onClick={() => dismiss(top.id)} className="rounded-full p-1.5 text-white/60 hover:bg-white/10"><X className="h-3.5 w-3.5" /></button>
+            <button aria-label="Fechar aviso" onClick={() => dismiss(top.id)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/70 hover:bg-white/10"><X className="h-4 w-4" /></button>
           </motion.div>
         )}
       </AnimatePresence>

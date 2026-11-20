@@ -27,6 +27,13 @@ export default function CheckoutPage() {
   const [now, setNow] = useState(Date.now()); const [err, setErr] = useState(''); const busy = useRef(false); const [sending, setSending] = useState(false);
   const pixRef = useRef<HTMLInputElement>(null);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
+  // Returning to an active hold: reassure briefly. Expiry is never reset; first entry stays quiet.
+  const [back, setBack] = useState(false); const holdKey = h ? `bpui:hold-seen:${h.salonId}:${h.expiresAt}` : null;
+  useEffect(() => {
+    if (!holdKey) return undefined;
+    if (sessionStorage.getItem(holdKey)) { setBack(true); const t = setTimeout(() => setBack(false), 6000); return () => clearTimeout(t); }
+    sessionStorage.setItem(holdKey, '1'); return undefined;
+  }, [holdKey]);
 
   if (!h) return <div className="px-5 pt-10"><Empty icon={Hourglass} title="Nenhuma reserva em andamento" text="Escolha um salão e um horário para começar." action={<Link href="/" className="rounded-full bg-forest px-4 py-2 text-xs font-semibold text-white">Explorar salões</Link>} /></div>;
   const s = getSalon(h.salonId)!; const left = Math.max(0, h.expiresAt - now); const expired = left === 0;
@@ -35,7 +42,7 @@ export default function CheckoutPage() {
   const patch = (p: Partial<typeof h>) => setState((x) => (x.hold ? { ...x, hold: { ...x.hold, ...p } } : x));
 
   const errs = {
-    card: luhn(card) ? '' : 'Use 13 a 19 dígitos que passem na verificação de Luhn.',
+    card: luhn(card) ? '' : 'Confira o número do cartão — para este teste, você pode usar 4111 1111 1111 1111.',
     name: name.trim() ? '' : 'Nome do titular é obrigatório.',
     exp: expOk(exp) ? '' : 'Use MM/AA com mês 01–12 e data futura.',
     cvv: /^\d{3,4}$/.test(cvv) ? '' : 'CVV deve ter 3 ou 4 dígitos.',
@@ -72,7 +79,7 @@ export default function CheckoutPage() {
       <label className={cn('text-xs font-semibold text-ink', extra.cls)}>{label}
         <input data-testid={`input-${k === 'card' ? 'card' : `card-${k}`}`} value={val} aria-invalid={bad} aria-describedby={`err-${k}`} inputMode={extra.mode} placeholder={extra.ph} maxLength={extra.max} autoComplete={extra.auto}
           onChange={(e) => { set(e.target.value); setTouched((t) => ({ ...t, [k]: true })); }} onBlur={() => setTouched((t) => ({ ...t, [k]: true }))} className={inp(bad)} />
-        <span id={`err-${k}`} className={cn('mt-0.5 block text-[10px] font-normal', bad ? 'text-coral' : 'text-muted-ink')} data-testid={`text-error-${k}`}>{bad ? errs[k] : touched[k] && !errs[k] ? 'Ok' : '\u00a0'}</span>
+        <span id={`err-${k}`} className={cn('mt-0.5 block text-[10px] font-normal', bad ? 'text-[#9F1239]' : 'text-muted-ink')} data-testid={`text-error-${k}`}>{bad ? errs[k] : touched[k] && !errs[k] ? 'Ok' : '\u00a0'}</span>
       </label>
     );
   };
@@ -85,6 +92,7 @@ export default function CheckoutPage() {
           <span className="flex items-center gap-2"><Timer className="h-4 w-4" />{expired ? 'Tempo esgotado — horário liberado' : 'Horário reservado para você por'}</span>
           {!expired && <b className="tnum">{pad(Math.floor(left / 60000))}:{pad(Math.floor(left / 1000) % 60)}</b>}
         </div>
+        {back && !expired && <p role="status" data-testid="text-hold-reassure" className="flex items-center gap-2 rounded-2xl border border-mint-3 bg-economy-bg px-4 py-2.5 text-xs text-forest"><Check className="h-4 w-4 shrink-0 text-economy" /><span>Tudo guardado: {s.name}, {fmtDate(h.date)} às {pad(h.hour)}:00. Seu horário segue reservado e o prazo permanece o mesmo.</span></p>}
         {expired && <button data-testid="button-hold-restart" onClick={() => { clearHold(); navigate(`/salao/${s.id}`); }} className="w-full rounded-full border border-forest py-2.5 text-sm font-semibold text-forest">Escolher novo horário</button>}
 
         <div className="rounded-[24px] border border-line bg-white p-4">
@@ -104,7 +112,7 @@ export default function CheckoutPage() {
         <div role="radiogroup" aria-label="Forma de pagamento" className="flex gap-2">{tab('pix', 'Pix Instantâneo', 'Aprovação imediata', QrCode)}{tab('card', 'Cartão de Crédito', 'Simulado', CreditCard)}</div>
 
         {pay === 'pix' && <div className="flex flex-col items-center gap-2 rounded-[24px] border border-line bg-white p-4" data-testid="panel-pix">
-          <QR value={pix} size={170} />
+          <QR value={pix} size={170} medallion={false} />
           <label className="w-full text-[10px] text-muted-ink"><span className="sr-only">Código Pix copia e cola</span>
             <input ref={pixRef} readOnly value={pix} onFocus={(e) => e.currentTarget.select()} data-testid="input-pix-code" className="w-full truncate rounded-lg bg-tint px-2 py-1.5 text-center font-mono text-[10px] text-muted-ink outline-none focus:ring-2 focus:ring-mint/40" />
           </label>
@@ -123,7 +131,7 @@ export default function CheckoutPage() {
           <p className="flex gap-1.5"><ShieldCheck className="h-3.5 w-3.5 shrink-0 text-teal" />Pagamento simulado — nenhum valor será cobrado neste teste.</p>
           <p>Cancelamento gratuito até 24h antes. Ao concluir, você autoriza o salão a reter até 30% do valor em caso de não comparecimento.</p>
         </div>
-        {err && <p role="alert" className="rounded-xl bg-coral-bg p-3 text-xs text-coral" data-testid="text-checkout-error">{err}</p>}
+        {err && <p role="alert" className="rounded-xl bg-coral-bg p-3 text-xs text-[#9F1239]" data-testid="text-checkout-error">{err}</p>}
         <button data-testid="button-confirm" disabled={expired || sending} onClick={submit} className="w-full rounded-full bg-forest py-3.5 text-sm font-bold text-white transition hover:bg-forest-hover active:scale-[.98] disabled:opacity-50">{sending ? 'Confirmando…' : `Confirmar · ${brl(total)}`}</button>
         <button data-testid="button-release-hold" onClick={() => { clearHold(); navigate(`/salao/${s.id}`); }} className="flex w-full items-center justify-center gap-1 text-xs text-muted-ink"><ArrowLeft className="h-3 w-3" />Voltar e liberar horário</button>
       </div>

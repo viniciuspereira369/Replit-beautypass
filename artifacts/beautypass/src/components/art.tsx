@@ -3,6 +3,7 @@ import { Scissors, Sparkles, Hand, Flower2, Droplets, Palette, ImageOff, UserRou
 import type { Category } from '@/lib/data';
 import { hash } from '@/lib/pricing';
 import { MEDIA } from '@/lib/media';
+import { QR_MODULES, QR_QUIET_ZONE, QR_DARK, QR_WHITE, QR_VIEWBOX } from '@/lib/qr-layout';
 import { cn } from '@/lib/utils';
 
 /** Official emblem. White version on dark surfaces, teal on light surfaces. Never inverted. */
@@ -44,8 +45,8 @@ export function Portrait({ src, name, className, ring = true }: { src: string; n
   );
 }
 
-export function QR({ value, size = 160 }: { value: string; size?: number }) {
-  const n = 25; let x = hash(value) || 1;
+export function QR({ value, size = 160, medallion = true }: { value: string; size?: number; medallion?: boolean }) {
+  const n = QR_MODULES; let x = hash(value) || 1;
   const rnd = () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return (x >>> 0) % 2; };
   const inFinder = (r: number, c: number) => [[0, 0], [0, n - 7], [n - 7, 0]].some(([fr, fc]) => r - fr >= -1 && r - fr <= 7 && c - fc >= -1 && c - fc <= 7);
   const center = (r: number, c: number) => Math.abs(r - 12) <= 3 && Math.abs(c - 12) <= 3;
@@ -53,22 +54,24 @@ export function QR({ value, size = 160 }: { value: string; size?: number }) {
   for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
     if (inFinder(r, c)) continue;
     const on = rnd();
-    if (on && !center(r, c)) cells.push(<rect key={`${r}-${c}`} x={c + 0.08} y={r + 0.08} width=".84" height=".84" rx=".32" fill={(r + c) % 5 === 0 ? '#0D9488' : '#00685F'} />);
+    if (on && !(medallion && center(r, c))) cells.push(<rect key={`${r}-${c}`} x={c} y={r} width="1" height="1" rx=".1" fill={QR_DARK} />);
   }
   const finder = (fx: number, fy: number) => (
     <g key={`${fx}-${fy}`}>
-      <rect x={fx + 0.5} y={fy + 0.5} width="6" height="6" rx="1.8" fill="none" stroke="#123E35" strokeWidth="1" />
-      <rect x={fx + 2} y={fy + 2} width="3" height="3" rx="1" fill="#0D9488" />
+      <rect x={fx} y={fy} width="7" height="7" rx=".5" fill={QR_DARK} />
+      <rect x={fx + 1} y={fy + 1} width="5" height="5" rx=".3" fill={QR_WHITE} />
+      <rect x={fx + 2} y={fy + 2} width="3" height="3" rx=".2" fill={QR_DARK} />
     </g>
   );
   return (
-    <div className="relative inline-block rounded-2xl bg-white p-1" style={{ width: size, height: size }} role="img" aria-label={`QR ${value}`}>
-      <svg viewBox={`-1 -1 ${n + 2} ${n + 2}`} className="h-full w-full">
+    <div className="relative inline-block shrink-0 bg-white" style={{ width: size, height: size, backgroundColor: QR_WHITE }} role="img" aria-label={`QR ${value}`} data-qr-quiet-zone={QR_QUIET_ZONE} data-qr-medallion={medallion}>
+      <svg viewBox={QR_VIEWBOX} className="h-full w-full" aria-hidden>
+        <rect x={-QR_QUIET_ZONE} y={-QR_QUIET_ZONE} width={n + QR_QUIET_ZONE * 2} height={n + QR_QUIET_ZONE * 2} fill={QR_WHITE} />
         {cells}{finder(0, 0)}{finder(n - 7, 0)}{finder(0, n - 7)}
       </svg>
-      <span className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white p-1 shadow-[0_0_0_2px_#EBF5F2]" style={{ width: size * 0.24, height: size * 0.24 }}>
+      {medallion && <span data-testid="qr-medallion" className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white p-1 ring-2 ring-white" style={{ width: size * 0.20, height: size * 0.20 }}>
         <Emblem className="h-full w-full" />
-      </span>
+      </span>}
     </div>
   );
 }
