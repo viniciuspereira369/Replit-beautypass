@@ -1,44 +1,52 @@
-# [Project name]
+# BeautyPass
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Marketplace de beleza e clube de assinatura demonstrativo em São Paulo. “Sua beleza, no seu tempo.”
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- Managed workflow `artifacts/beautypass: web` runs the client application.
+- `pnpm --filter @workspace/beautypass run typecheck` — check the BeautyPass application.
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- BeautyPass requires no secrets, database, or API server.
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- BeautyPass: React, TypeScript, Tailwind CSS, Lucide, browser localStorage.
+- Existing API/database packages are template infrastructure, not BeautyPass dependencies.
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/beautypass/src/lib/` — seed data, pricing, shared browser state.
+- `artifacts/beautypass/src/pages/` — client journeys and salon portal.
+- `artifacts/beautypass/src/components/` — shell, vector artwork, cards, vouchers.
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Cashback is released on completed check-in for the first three completed appointments, rather than before service delivery. Why: cancellations must not generate free cashback.
+- Partner/client synchronization is local to this browser and same-origin browser tabs. Why: this hackathon explicitly excludes a backend.
+- Editorial mint/emerald SVG artwork replaces salon photography. Why: the requested MVP must remain self-contained without image generation or external image APIs.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+PT-BR discovery and map, instant matching, salon agendas with economic slots, simulated checkout, QR vouchers, cancellations, credits and membership plans. The salon portal manages dynamic discounts, checks in bookings and computes simulated D+1 payouts.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Keep this hackathon MVP entirely client-side with persisted demo state and a one-click demo reset.
+- Do not add backend services, databases, payment gateways, OAuth, external map tiles, or paid API keys.
+- All payments, top-ups, memberships, and QR check-ins are simulations.
+- Use PT-BR copy, mint/forest branding, Playfair Display headings, Inter UI, Lucide/vector visuals, and no emojis.
+- Reuse at most five category visuals; do not generate separate salon images.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Reset removes BeautyPass demo data only, not unrelated localStorage.
+- Monetary values are BRL; one BeautyCredit equals R$ 1,00, with integer credit deductions.
+- Confirmed booking prices are frozen snapshots; rule changes affect new bookings only.
 
 ## Pointers
 

@@ -1,43 +1,54 @@
-import { type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
-import {
-  Route,
-  Switch,
-  useLocation,
-  Router as WouterRouter,
-} from 'wouter';
+import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
+import { ClientShell, TopBar, useView } from '@/components/shell';
+import HomePage from '@/pages/home';
+import MapPage from '@/pages/map';
+import PedirPage from '@/pages/pedir';
+import SalonPage from '@/pages/salon';
+import CheckoutPage from '@/pages/checkout';
+import ReservasPage, { ConfirmadoPage } from '@/pages/reservas';
+import PerfilPage from '@/pages/perfil';
+import PainelPage from '@/pages/painel';
 
 const queryClient = new QueryClient();
 
-function Home() {
-  return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Replit Agent is building...
-        </h1>
-        <p className="mt-2 text-sm text-gray-600">
-          Your app will appear here once it's ready.
-        </p>
-      </div>
-    </div>
-  );
-}
-
 function Router() {
+  const [loc] = useLocation(); const [view, setView] = useView();
+  const b2b = loc.startsWith('/painel');
+  useEffect(() => {
+    const section = loc.startsWith('/salao/') ? 'Salão e agenda' :
+      loc.startsWith('/confirmado/') ? 'Reserva confirmada' :
+      ({ '/': 'Sua beleza, no seu tempo.', '/mapa': 'Mapa de salões', '/pedir': 'Pedir Agora', '/checkout': 'Confirmar reserva', '/reservas': 'Minhas reservas', '/perfil': 'Clube BeautyPass', '/painel': 'Painel Salão B2B' } as Record<string, string>)[loc] ?? 'Página não encontrada';
+    document.title = `BeautyPass — ${section}`;
+  }, [loc]);
   return (
-    // Keep a shared shell (sidebar, navbar) outside the boundary so it
-    // survives a page crash.
-    <RoutedErrorBoundary>
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route component={NotFound} />
-      </Switch>
-    </RoutedErrorBoundary>
+    <>
+      <TopBar view={view} setView={setView} />
+      {b2b ? (
+        <div className="overflow-x-auto"><RoutedErrorBoundary><PainelPage /></RoutedErrorBoundary></div>
+      ) : (
+        <ClientShell framed={view === 'phone'}>
+          <RoutedErrorBoundary>
+            <Switch>
+              <Route path="/" component={HomePage} />
+              <Route path="/mapa" component={MapPage} />
+              <Route path="/pedir" component={PedirPage} />
+              <Route path="/salao/:id" component={SalonPage} />
+              <Route path="/checkout" component={CheckoutPage} />
+              <Route path="/reservas" component={ReservasPage} />
+              <Route path="/confirmado/:code" component={ConfirmadoPage} />
+              <Route path="/perfil" component={PerfilPage} />
+              <Route component={NotFound} />
+            </Switch>
+          </RoutedErrorBoundary>
+        </ClientShell>
+      )}
+    </>
   );
 }
 
